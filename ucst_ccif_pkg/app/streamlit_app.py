@@ -27,10 +27,19 @@ duplicate entry points, so they were removed.
 
 from __future__ import annotations
 import io
+import sys
+import pathlib as _pl
 from datetime import datetime
 import numpy as np
 import pandas as pd
 import streamlit as st
+
+# Cloud-deploy safety: make the ucst_ccif package importable regardless of
+# whether this app runs from the repo root (Streamlit Cloud) or from inside
+# the package folder (local run).
+_APP_ROOT = _pl.Path(__file__).resolve().parents[1]   # e.g. .../ucst_ccif_pkg
+if str(_APP_ROOT) not in sys.path:
+    sys.path.insert(0, str(_APP_ROOT))
 
 st.set_page_config(page_title="OCIP — Carbon Verification Layer", layout="wide",
                    initial_sidebar_state="expanded", page_icon="🛰️")
