@@ -44,7 +44,7 @@ from ucst_ccif.emission_factors import (
 # Brand & theme
 APP_VERSION = "v0.4.0"
 APP_TAGLINE = "The independent carbon-verification layer for GBA enterprises & research teams"
-GITHUB_URL = "https://github.com/liulinda185-spec/Carbon-Falcon"
+GITHUB_URL = "https://github.com/liulinda185-spec/carbon-falcon-ocip"
 DOI_URL = "https://zenodo.org/records/23687344"
 
 st.markdown("""
