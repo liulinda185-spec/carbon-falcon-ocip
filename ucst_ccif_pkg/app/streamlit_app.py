@@ -495,7 +495,7 @@ with tab_eq:
 
     eq_cards = [
         dict(n="Eq. (1)", badge="🟢 Core in UI · S3 hard gate",
-             title="Stock–flux conservation identity",
+             title="Stock–flux accounting identity (conservation-constrained)",
              latex=(r"\frac{dC}{dt} = \sum_{j} F_{i\to j} - \sum_{j} F_{j\to i} "
                     r"+ Q_{env} + Q_{agent} + \varepsilon_C \quad,\quad "
                     r"\varepsilon_C = \Delta C_{obs} - \Delta C_{balance}"),
@@ -512,13 +512,13 @@ with tab_eq:
              logic="Hybrid human interventions split into two: active trigger (deliberate human action) and passive response (post-intervention ecological dynamics). Additionality = intervention − baseline.",
              where="`models.m3_counterfactual` (military/restoration/DAC defaults for F_a/F_p); `attribution.additionality_counterfactual`; called directly by the Intervention ledger (Eq.3) in the UI."),
         dict(n="Eq. (4)", badge="🟢 Implemented · S4 time-series εA",
-             title="Aggregation commutator residual (scale-shift hypothesis)",
+             title="Aggregation commutator residual (scale-translation hypothesis)",
              latex=(r"\varepsilon_A(s) = A(s)\big[\, f_s(x_s)\,\big] "
                     r"- f_{s+1}\big[\, A(s)\,x_s \,\big]"),
              logic="The same flux series walks two paths: evolve at fine scale then aggregate, minus aggregate then evolve — the difference is εA; stronger nonlinearity, within-month variance or spikes give larger εA; max|εA| above tolerance relative to total flux fails the scale check.",
              where="`audit_pipeline.time_series_scale_audit` lands this equation in the time dimension (daily integral vs monthly-mean then integrate; Tab 2/S4 shows the series and per-month εA); the stock-vs-flux scalar reconciliation remains as a secondary view. The spatial aggregation operator A(s) is not yet implemented."),
         dict(n="Eq. (5)", badge="🔴 Not implemented standalone",
-             title="Downscaling operator (scale-shift hypothesis)",
+             title="Downscaling operator (scale-translation hypothesis)",
              latex=r"x_{s} = D(s)\, x_{s+1} + \zeta(s)",
              logic="Coarse-scale state is rebuilt down to fine scale; ζ(s) carries fine-scale covariates absent from the coarse state; the residual needs a pre-specified tolerance.",
              where="No standalone downscaling operator yet; the S4 dual-ledger reconciliation partially covers it indirectly."),
