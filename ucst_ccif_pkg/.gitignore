@@ -1,0 +1,19 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Test / build artifacts
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+
+# Local tooling state
+.streamlit/
+.settings/
+
+# Scratch / working files not part of the package
+slide*.xml
+*.local
+.DS_Store

@@ -1,0 +1,141 @@
+<title>OCIP Carbon Falcon — MVP &amp; Business Model Evaluation</title>
+
+<callout background-color="light-gray" border-color="gray">
+<p><b>Bottom line.</b> This evaluation answers one question: has the Carbon Falcon audit tool and its business model met expectations? The verdict is split.</p>
+<ul>
+<li><b>Good technical MVP, unproven business.</b> A genuinely differentiated tool is shipped and verified: 43/43 tests green, a 9-tab app, a live leakage audit, a GBA-first ledger, and a Zenodo DOI. The revenue core and market proof are not.</li>
+<li><b>Expectation gap.</b> Roughly 80% of the promised technical scope is demonstrably built; 0% of the business validation — no design partners, no pilot, no evidence anyone will pay.</li>
+<li><b>Why it can still win.</b> The honest negative result (apparent R² 0.90 collapses to 0.45 once target leakage is removed) is a real moat: no competitor ships a leakage audit or a biogenic-flux ledger for the GBA.</li>
+<li><b>Next 90 days.</b> P0: build the 6-gate claim-vetting workflow, sign two design partners, deploy a clickable demo. P1: second validation site, honest-benchmark white paper, GBA data-normalisation layer. P2: a real ISO 14064-3 evidence pack, weather driver, Techathon+ and HK Tech 300 filings.</li>
+<li><b>Key limits.</b> Single-site validation; the UI labels "ISO 14064-3 audit trail" and "NGFS Phase V" currently outrun what the export and data deliver; audit positioning needs care in China's regulated MRV context.</li>
+</ul>
+</callout>
+
+<h1 seq="auto">The app in plain language</h1>
+<p>If you know nothing about carbon accounting, here is what this tool is. Companies that must report carbon numbers — HKEX climate-disclosure rules now make this mandatory for listed issuers — and mangrove or wetland projects that claim carbon credits both need believable numbers. Most carbon software today multiplies your electricity and fuel bills by standard factors and assumes the result is fine.</p>
+<p>OCIP (the Open Carbon Platform, powered by the UCST-CCIF engine, product name Carbon Falcon) adds a verification layer. It does three things. First, it calculates a basic corporate footprint — Scope 1 (fuel burned on site), Scope 2 (purchased electricity, using China's official grid factors), and part of Scope 3 (travel, commuting, purchased goods). Second, it estimates how much carbon a coastal wetland actually absorbs or emits, using mangrove, saltmarsh and soil-carbon lookups plus a 12-pool ecosystem model. Third — the special feature — it audits whether the models people use to claim carbon savings are cheating.</p>
+<p>That audit is a "leakage check". A common trick in carbon modelling is to use the answer to predict the answer: build a model from GPP or ER, which are themselves derived from the very flux you are predicting. On the project's own 11-year Sapelo Island dataset, removing that trick cut reported skill from a fake R² 0.90 to a true 0.45. The product pitch is honesty: "we show where your numbers would break", not "we predict carbon better than anyone".</p>
+<p>Who it is for, day one: GBA enterprises that must disclose (HKEX IFRS S2, Shenzhen ETS-listed firms) and blue-carbon project developers that need CCER-compliant numbers; researchers are the credibility channel. The honest caveat, stated in the project's own proposal: it is not a certified auditor and not a certified methodology — it is a diagnostic layer on top of certified protocols, currently validated on one US salt-marsh tower.</p>
+
+<h1 seq="auto">Did it meet expectations?</h1>
+<p>Expectations were set in two places: your five OCIP product decisions and the MVP specification in the consolidated proposal. Against both, the technical side largely delivered; the business side did not start.</p>
+<table>
+<colgroup><col width="220" /><col width="300" /><col width="300" /></colgroup>
+<thead><tr><th><p>Your OCIP decision (12 Oct 2026)</p></th><th><p>Status</p></th><th><p>Where it shows</p></th></tr></thead>
+<tbody>
+<tr><td><p>GBA first</p></td><td><p><b>Met</b></p></td><td><p>CEADs Guangdong 2022, HK EPD 2023, Guangdong grid factor, CCER mangrove reference in the app</p></td></tr>
+<tr><td><p>Enterprise users first</p></td><td><p><b>Partly met</b></p></td><td><p>Scope 1/2/3 tabs exist; no multi-tenancy, auth or pilot users</p></td></tr>
+<tr><td><p>Apply for funds to build the carbon database</p></td><td><p><b>In motion</b></p></td><td><p>Data strategy and fund stack documented; normalisation layer and reconciled GBA dataset not yet built</p></td></tr>
+<tr><td><p>Scope: carbon GHGs only (CO2 + CH4)</p></td><td><p><b>Met</b></p></td><td><p>CH4 covered in rice, landfill and blue-carbon modules; N2O and F-gases out of scope</p></td></tr>
+<tr><td><p>Max J weight user-configurable</p></td><td><p><b>Documented</b></p></td><td><p>Locked as a decision with default preset (0.4/0.2/0.1/0.3); app state not verified in this review</p></td></tr>
+</tbody>
+</table>
+<table>
+<colgroup><col width="250" /><col width="130" /><col width="440" /></colgroup>
+<thead><tr><th><p>Promised in proposal §3.1</p></th><th><p>Status</p></th><th><p>Evidence (verified 29 Oct 2026)</p></th></tr></thead>
+<tbody>
+<tr><td><p>CSV activity data → GHG Protocol Scope 1/2/3 inventory with IFRS S2 / SEHK export via Climatiq</p></td><td><p><b>Shipped, with substitution</b></p></td><td><p>Tabs 1–3 use MEE 2022 factors (China-first, free) instead of Climatiq — a defensible cost and market choice; Scope 3 covers 4 of 15 categories; no IFRS S2 / SEHK report template yet</p></td></tr>
+<tr><td><p>Site-level biogenic-flux module with M0–M3 comparison report</p></td><td><p><b>Partial</b></p></td><td><p>Tab 4 runs the 12-pool continuum and blue-carbon lookups; the M0–M3 competition exists in code and CLI but is not surfaced in the UI</p></td></tr>
+<tr><td><p>ISO 14064-3-ready audit trail (lineage, factor versions, R², residual)</p></td><td><p><b>Partial</b></p></td><td><p>Tab 7 exports a summary PDF; lineage, factor versions, out-of-sample R² and mass-balance residual are not yet in the export</p></td></tr>
+<tr><td><p>Read-only NGFS V5 scenario connector</p></td><td><p><b>Partial</b></p></td><td><p>Tab 6 shows three illustrative scenarios with hardcoded prices; not real NGFS V5 data; the Sudden Transition path is missing</p></td></tr>
+<tr><td><p>One-click leakage audit, red/amber/green</p></td><td><p><b>Shipped</b></p></td><td><p>Tab 5: CSV upload → audit_leakage → classification table; engine in leakage.py with tests</p></td></tr>
+<tr><td><p>6-month milestones M1–M6</p></td><td><p><b>~60% reached</b></p></td><td><p>M1 (DOI, repo) done; M2–M3 app scope done; M4–M5 design partners not signed; M6 evidence pack / NGFS / white paper partial</p></td></tr>
+</tbody>
+</table>
+<p>The scorecard below compresses the same gap into one view — shipped, partial and missing, with the four headline numbers that a reviewer will check first.</p>
+<html5-block path="@./draft_734dd296_folder/widget.html"></html5-block>
+<p>The picture is consistent: everything that proves the idea is built; everything that proves the business is not. The next 90 days are therefore about the missing column — the claim-vetting workflow, two design partners, a second site and a clickable deployment.</p>
+
+<h1 seq="auto">Was it a good MVP?</h1>
+<p>Yes — as a technical MVP that proves differentiation. It is not yet a business MVP, because the workflow people would pay for (claim vetting) is not in the app and no outsider has used it. Judge it on both tests.</p>
+<p><b>Strengths</b></p>
+<ul>
+<li><b>The differentiation is real and shipped.</b> The leakage audit is the only red/amber/green falsification harness in this market, and it exists as UI, engine and tests — not just a slide.</li>
+<li><b>Honesty is packaged as the moat.</b> The negative result (fake R² 0.90 → honest 0.45; models barely beat climatology at daily scale and lose at monthly) is turned into the credibility story rather than hidden.</li>
+<li><b>Engineering discipline.</b> 43/43 tests green, CLI, Apache-2.0, GitHub repo, Zenodo DOI, versioned package — uncommon for a solo final-year founder and exactly what funders and professors check.</li>
+<li><b>GBA-first is in the product, not only the deck.</b> MEE factors, CEADs/EPD/GCB ledger, rice and landfill CH4, CCER mangrove methodology reference.</li>
+<li><b>Scope discipline.</b> CO2 + CH4 only; buy-not-build on factors (MEE substitution cuts cost and fits the China market).</li>
+</ul>
+<p><b>Gaps</b></p>
+<ul>
+<li><b>The revenue core is missing from the app.</b> The 6-gate claim-vetting workflow — data intake, leakage, mass balance, skill score, counterfactual, uncertainty, then a Verified / Provisional / Rejected verdict — is documented in the proposal but not implemented. The app audits predictors, not claims.</li>
+<li><b>Zero external validation.</b> No design partners, no pilots, and no public deployment URL; a reviewer or funder cannot click the product today.</li>
+<li><b>Overclaim risk in the UI.</b> "ISO 14064-3 audit trail" and "NGFS Phase V scenarios" outrun what the summary PDF and hardcoded table actually deliver; a strict verifier could call this out.</li>
+<li><b>Scientific credibility rests on one site.</b> The plan itself flags the second tower as the single biggest credibility gap.</li>
+<li><b>Solo-founder sequencing risk.</b> The 6-month seed expects incorporation, a white paper, two design partners and a product — all from one person. Priority discipline is the binding constraint.</li>
+</ul>
+
+<h1 seq="auto">Business model assessment</h1>
+<p><b>The wedge is real and defensible near term.</b> The market splits into factor-calculator SaaS (Watershed, Persefoni, Climatiq and friends) that never model biogenic flux, and research-grade models (JULES, ORCHIDEE, InVEST) with no UI, no assurance and no enterprise ingestion. Nobody ships the middle: one auditable stock–flux ledger that spans fossil combustion and ecosystem flux, propagates uncertainty, separates environmental from human-agency flux, and carries a leakage audit. That middle is OCIP, and it is GBA/China-native by design.</p>
+<p><b>The revenue logic is sound but untested.</b> Companies pay to avoid being rejected: OCIP runs a claim through six gates and publishes Verified, Provisional or Rejected with the evidence. This only becomes sellable (HK$30–80k/yr per enterprise, free 6-month pilot for case-study rights) once the 6-gate workflow actually exists in the app.</p>
+<p><b>What is strong.</b></p>
+<ul>
+<li>Regulatory tailwinds: HKEX IFRS S2 disclosure is mandatory for issuers (Scope 1/2 from FY2025, full climate from FY2026); CBAM's first declarations fall due 30 Sep 2027; CCER mangrove creation was in the first approved methodology batch (Oct 2023), saltmarsh and seagrass added in the 2025 wave.</li>
+<li>A non-dilutive funding stack is mapped: HK Tech 300 Seed (HK$100k, the current ask) → HKSTP Ideation and Cyberport CCMF (HK$100k each) → HK Tech 300 Angel (up to HK$1M); Techathon+ deadline 11 Jan 2027.</li>
+<li>Honest positioning fits the post-greenwashing regulatory mood and is hard for incumbents to copy without admitting their own models leak.</li>
+</ul>
+<p><b>What is risky.</b></p>
+<ul>
+<li>No willingness-to-pay evidence yet; the "companies pay to avoid rejection" thesis is plausible but untested.</li>
+<li>"Audit" and "verification" language can collide with China's regulated 审定/核查 system (certified verifiers hold the license). Position as verification-support software with a human verifier in the loop, not as an auditor.</li>
+<li>Enterprise carbon SaaS is a funded red ocean; do not fight on UI, factors or integrations.</li>
+<li>The stated goal — funds to build the carbon database — is actually the stronger near-term pitch: grants fund data infrastructure, and the audit tool is the interface that makes the database valuable. Lead the next funding round with the database, not the software.</li>
+</ul>
+
+<h1 seq="auto">What to prioritize</h1>
+<p>Three bands for the next 90 days. P0 makes it sellable, P1 makes it credible, P2 makes it defensible and funded.</p>
+<table>
+<colgroup><col width="130" /><col width="300" /><col width="210" /><col width="180" /></colgroup>
+<thead><tr><th><p>Band</p></th><th><p>Action</p></th><th><p>Why now</p></th><th><p>Exit evidence</p></th></tr></thead>
+<tbody>
+<tr><td><p><b>P0 · weeks 0–4</b></p></td><td><p>Build the 6-gate claim-vetting workflow in the app (Qi'ao mangrove worked example, verdict PDF)</p></td><td><p>This is the thing companies pay for</p></td><td><p>One internal run produces a Verified / Provisional / Rejected verdict</p></td></tr>
+<tr><td><p><b>P0</b></p></td><td><p>Sign 2 design partners: a mangrove developer and a Shenzhen ETS SME, free 6-month pilot for case-study rights</p></td><td><p>Single highest-value action; validates willingness to engage</p></td><td><p>Two signed pilot letters of intent</p></td></tr>
+<tr><td><p><b>P0</b></p></td><td><p>Deploy the app publicly (Streamlit Community Cloud is free) and record a 3-minute demo</p></td><td><p>Reviewers and funders must be able to click it</p></td><td><p><b>Live URL</b></p></td></tr>
+<tr><td><p><b>P1 · weeks 4–8</b></p></td><td><p>Second validation tower: MOU with SCSIO / SUSTech / CityU Geography; JapanFlux2024 as fallback analogue</p></td><td><p>Closes the biggest credibility gap</p></td><td><p>Signed intent or data access</p></td></tr>
+<tr><td><p><b>P1</b></p></td><td><p>Publish the honest-benchmark white paper (ESSD/GMD short report; JOSS tied to the DOI)</p></td><td><p>The credibility asset funders and professors read</p></td><td><p>Preprint published</p></td></tr>
+<tr><td><p><b>P1</b></p></td><td><p>Build the GBA normalisation layer, factor_catalog.json and a reconciled GBA carbon-database seed (CEADs 2022 × HK EPD × GCB2025)</p></td><td><p>This is the fundable asset matching your stated goal</p></td><td><p>One reconciled GBA dataset plus schema doc</p></td></tr>
+<tr><td><p><b>P2 · weeks 8–13</b></p></td><td><p>Upgrade the PDF to a real ISO 14064-3-style evidence pack: lineage, factor versions, out-of-sample R², mass-balance residual, 90% interval</p></td><td><p>Before claiming "ISO 14064-3-ready" publicly</p></td><td><p>Export contains all six evidence classes</p></td></tr>
+<tr><td><p><b>P2</b></p></td><td><p>Wire the weather driver (Open-Meteo) and one NetCDF prior (CAMS or FLUXCOM) into the Biogenic tab</p></td><td><p>Makes biogenic numbers site-specific rather than illustrative</p></td><td><p>Live pull for one GBA polygon</p></td></tr>
+<tr><td><p><b>P2</b></p></td><td><p>File Techathon+ (deadline 11 Jan 2027) and the HK Tech 300 seed pack aligned to milestones M1–M6</p></td><td><p>Next funding round; the MVP is already the demo</p></td><td><p><b>Applications submitted</b></p></td></tr>
+</tbody>
+</table>
+
+<h1 seq="auto">What to connect</h1>
+<p>The product is already strong in isolation; the leverage is in the connections. Five pairings matter most.</p>
+<table>
+<colgroup><col width="170" /><col width="250" /><col width="220" /><col width="180" /></colgroup>
+<thead><tr><th><p>Pairing</p></th><th><p>What to connect</p></th><th><p>Why</p></th><th><p>First action</p></th></tr></thead>
+<tbody>
+<tr><td><p>Research ↔ Product</p></td><td><p>The SSRN paper and the app share one leakage story</p></td><td><p>The paper is the credibility asset; the app is its demo</p></td><td><p>Put the DOI and the 0.90→0.45 finding on the app landing page</p></td></tr>
+<tr><td><p>Funding chain</p></td><td><p>Techathon+ → HK Tech 300 Seed → HKSTP Ideation / CCMF → Angel (HK$1M)</p></td><td><p>Each stage needs one demoable story; the same demo serves all</p></td><td><p>File Techathon+ by 11 Jan 2027</p></td></tr>
+<tr><td><p>Data ↔ Grants</p></td><td><p>The normalised GBA ledger and factor catalog are the "carbon database"</p></td><td><p>Grants fund data infrastructure; the app makes it valuable</p></td><td><p>Pitch the database to Green Tech Fund / ITF-TSSSU via CityU</p></td></tr>
+<tr><td><p>Professors ↔ Second tower</p></td><td><p>CityU / SUSTech / SYSU towers → co-authorship → ChinaFLUX MOU</p></td><td><p>Closes the credibility gap and unlocks GBA data</p></td><td><p>Send the professor email (draft already written)</p></td></tr>
+<tr><td><p>Enterprises ↔ Verifiers</p></td><td><p>First 3 clients paired with SGS / TÜV / CMA verifiers</p></td><td><p>Turns software into defensible disclosure and keeps audit language legitimate</p></td><td><p>Name the verifier in the pilot agreement</p></td></tr>
+</tbody>
+</table>
+
+<h1 seq="auto">Honest risks &amp; limitations</h1>
+<ol>
+<li><b>Single-site validation.</b> One validated tower (Sapelo salt marsh). Generalising to mangroves, urban parks or subtropical China needs 2–3 GBA towers; do not claim "global".</li>
+<li><b>Models barely beat climatology.</b> Daily skill +0.03, monthly skill negative, the 2023 hurricane missed by 44–48%. Product value is the process, not prediction; M2/M3 must close the extreme-year gap.</li>
+<li><b>ChinaFLUX data is restricted.</b> The second-tower MOU is the highest-variance item; JapanFlux2024 (CC-BY-4.0) is the fallback analogue.</li>
+<li><b>Regulatory churn.</b> GHG Protocol V3, SBTi V2, HKEX PAE rules (effective 1 Jan 2028) — keep the schema protocol-neutral until consolidated standards publish.</li>
+<li><b>No HK ETS.</b> Do not model a HK cap-and-trade price; power-sector Technical Memorandum tightening is the only power-side carbon price.</li>
+<li><b>Unverified items.</b> Verifier fees, several ISO titles and some frontier URLs remain flagged for confirmation before any client-facing use.</li>
+<li><b>Solo-founder execution.</b> Scope discipline matters more than features; the 90-day plan above is sequenced so each band de-risks the next.</li>
+</ol>
+
+<h1 seq="auto">Evidence &amp; sources</h1>
+<p>All product-state claims above were verified against the shipped code and a local test run (43/43 passed) on 29 Oct 2026. Key sources:</p>
+<ol>
+<li>Carbon-Falcon GitHub repository — <a href="https://github.com/liulinda185-spec/Carbon-Falcon">github.com/liulinda185-spec/Carbon-Falcon</a> (accessed 29 Oct 2026)</li>
+<li>Zenodo record v0.2.1, DOI 10.5281/zenodo.23687344 — <a href="https://zenodo.org/records/23687344">zenodo.org/records/23687344</a> (accessed 29 Oct 2026)</li>
+<li>OCIP Complete &amp; Actionable Proposal (project working document, 26 Oct 2026; local: Carbon Falcon/00_Final_Paper)</li>
+<li>UCST-CCIF Master Product Strategy Report (project working document; local: Carbon Falcon/00_Final_Paper)</li>
+<li>Liu &amp; Cui, Integrating Ecological Carbon Fluxes Across Scales: a Conservation-Constrained, Falsification-Based Modelling Framework (Ecological Modelling, submitted; local: ssrn-7417192.pdf)</li>
+<li>UCST-CCIF Validation &amp; Verification Playbook (project working document; local: Carbon Falcon/00_Final_Paper)</li>
+<li>HKEX climate disclosure requirements — <a href="https://www.hkex.com.hk/">hkex.com.hk</a></li>
+<li>China CCER mangrove methodology (first batch, Oct 2023) — <a href="https://www.mee.gov.cn/">mee.gov.cn</a></li>
+<li>Global Carbon Budget 2025 — <a href="https://globalcarbonbudget.org/datahub/">globalcarbonbudget.org</a></li>
+<li>NGFS Scenarios Portal — <a href="https://www.ngfs.net/ngfs-scenarios-portal/">ngfs.net</a></li>
+</ol>

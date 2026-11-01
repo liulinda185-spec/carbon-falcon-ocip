@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="use-iframe" content="true">
+<meta name="html-box-height-mode" content="auto">
+<meta name="description" content="MVP expectation scorecard for the OCIP Carbon Falcon audit tool as of 2026-10-29: what shipped, what is partial, what is still missing, and the key credibility metric">
+<title>OCIP Carbon Falcon — MVP expectation scorecard</title>
+<style>
+  :root { --navy:#1A2B4A; --aux:#758092; --line:#DDE0E4; --bg:#F4F6F9; --ink:#1F2329; --sub:#646A73; --green:#2E7D32; --amber:#B7791F; --red:#C0392B; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:"Segoe UI","Microsoft YaHei",Arial,sans-serif; color:var(--ink); background:#FFFFFF; width:100%; max-width:100%; padding:4px 2px; }
+  .h { font-size:16px; font-weight:700; color:var(--navy); margin-bottom:2px; }
+  .sub { font-size:13px; color:var(--sub); margin-bottom:10px; line-height:1.5; }
+  .metrics { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+  .m { flex:1 1 150px; border:1px solid var(--line); border-radius:8px; padding:8px 10px; background:var(--bg); }
+  .m b { display:block; font-size:20px; color:var(--navy); }
+  .m span { font-size:12px; color:var(--sub); }
+  .group { margin-bottom:12px; }
+  .gtitle { font-size:13px; font-weight:700; color:var(--navy); margin-bottom:6px; padding-bottom:3px; border-bottom:1px solid var(--line); }
+  .row { display:flex; align-items:flex-start; gap:8px; padding:6px 8px; border-bottom:1px dashed #ECEFF3; }
+  .row:last-child { border-bottom:none; }
+  .dot { width:9px; height:9px; border-radius:50%; margin-top:6px; flex:none; }
+  .row b { font-size:14px; display:block; line-height:1.35; }
+  .row p { font-size:13px; color:var(--sub); line-height:1.4; }
+  .pill { flex:none; font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; margin-left:auto; white-space:nowrap; }
+  .s { background:#E8F5E9; color:var(--green); border:1px solid #A5D6A7; }
+  .p { background:#FFF8E1; color:var(--amber); border:1px solid #F3D9A4; }
+  .m2 { background:#FDECEA; color:var(--red); border:1px solid #F0B4AD; }
+  .foot { font-size:12px; color:var(--sub); margin-top:6px; padding:8px; background:var(--bg); border-left:3px solid var(--navy); }
+</style>
+</head>
+<body>
+  <div class="h">MVP expectation scorecard — what shipped vs what the plan promised</div>
+  <div class="sub">OCIP / Carbon Falcon (UCST-CCIF engine) · as of 29 Oct 2026 · sources: proposal §3.1 and milestone table M1–M6, code and local test run (43/43 green)</div>
+  <div class="metrics">
+    <div class="m"><b>43/43</b><span>tests green, verified 29 Oct 2026</span></div>
+    <div class="m"><b>9</b><span>tabs in the Streamlit MVP</span></div>
+    <div class="m"><b>1</b><span>validated flux site (Sapelo)</span></div>
+    <div class="m"><b>0</b><span>design partners / paying users</span></div>
+  </div>
+  <div class="group">
+    <div class="gtitle">Shipped — works end to end</div>
+    <div class="row"><span class="dot" style="background:#2E7D32"></span><div><b>Scope 1 + Scope 2 inventory and selected Scope 3</b><p>MEE 2022 fuel and Guangdong grid factors; 4 of 15 Scope 3 categories (T&amp;D, travel, commuting, purchased goods)</p></div><span class="pill s">Shipped</span></div>
+    <div class="row"><span class="dot" style="background:#2E7D32"></span><div><b>Leakage audit — red / amber / green panel</b><p>Three-step screen with CSV upload and predictor classification; the core differentiator is live in the UI</p></div><span class="pill s">Shipped</span></div>
+    <div class="row"><span class="dot" style="background:#2E7D32"></span><div><b>GBA-first ledger, CO2 + CH4 scope</b><p>CEADs Guangdong 2022, HK EPD 2023, GCB2025, rice/landfill CH4, CCER mangrove reference</p></div><span class="pill s">Shipped</span></div>
+    <div class="row"><span class="dot" style="background:#2E7D32"></span><div><b>Engineering packaging</b><p>Apache-2.0, GitHub repo, Zenodo DOI 10.5281/zenodo.23687344, CLI, 15 core modules, 6 MVP kernels</p></div><span class="pill s">Shipped</span></div>
+  </div>
+  <div class="group">
+    <div class="gtitle">Partial — works, but thinner than the plan promised</div>
+    <div class="row"><span class="dot" style="background:#B7791F"></span><div><b>Biogenic flux module</b><p>Blue-carbon lookups and 12-pool continuum model run; the M0–M3 model-competition report exists in code/CLI but is not surfaced in the app</p></div><span class="pill p">Partial</span></div>
+    <div class="row"><span class="dot" style="background:#B7791F"></span><div><b>ISO 14064-3 evidence pack</b><p>Current export is a summary PDF; data lineage, factor versions, out-of-sample R2 and mass-balance residual are not yet in the export</p></div><span class="pill p">Partial</span></div>
+    <div class="row"><span class="dot" style="background:#B7791F"></span><div><b>NGFS V5 connector</b><p>Three illustrative scenarios with hardcoded carbon prices; not real NGFS V5 data and the Sudden Transition path is missing</p></div><span class="pill p">Partial</span></div>
+  </div>
+  <div class="group">
+    <div class="gtitle">Missing — the business still rests on these</div>
+    <div class="row"><span class="dot" style="background:#C0392B"></span><div><b>Claim-vetting revenue workflow (6-gate verdict)</b><p>The flow companies would pay for — data intake, leakage, mass balance, skill score, counterfactual, uncertainty, then Verified / Provisional / Rejected — is documented, not implemented</p></div><span class="pill m2">Missing</span></div>
+    <div class="row"><span class="dot" style="background:#C0392B"></span><div><b>Design partners / paying users</b><p>Zero signed pilots; no evidence of willingness to pay</p></div><span class="pill m2">Missing</span></div>
+    <div class="row"><span class="dot" style="background:#C0392B"></span><div><b>Second validation site</b><p>Single-site (Sapelo) validation remains the biggest scientific credibility gap</p></div><span class="pill m2">Missing</span></div>
+    <div class="row"><span class="dot" style="background:#C0392B"></span><div><b>Public deployment</b><p>No hosted URL — a reviewer or funder cannot click the product today</p></div><span class="pill m2">Missing</span></div>
+  </div>
+  <div class="foot">The credibility moat, stated plainly: after removing target leakage, the fancy model did not beat the simple one (honest R2 0.45 vs fake 0.90). That honesty — we show where your numbers break — is the selling point, not prediction accuracy.</div>
+</body>
+</html>
