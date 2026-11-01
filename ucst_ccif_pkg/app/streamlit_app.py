@@ -42,7 +42,7 @@ if str(_APP_ROOT) not in sys.path:
     sys.path.insert(0, str(_APP_ROOT))
 
 st.set_page_config(page_title="OCIP — Carbon Verification Layer", layout="wide",
-                   initial_sidebar_state="expanded", page_icon="🛰️")
+                   initial_sidebar_state="expanded")
 
 from ucst_ccif.emission_factors import (
     FUELS, GRID_FACTORS_MEE_2022, GRID_SOURCE,
@@ -89,11 +89,11 @@ st.markdown("""
 
 st.markdown(f"""
 <div class="ocip-hero">
-  <h1>🛰️ OCIP — Open Carbon Platform</h1>
+  <h1>OCIP — Open Carbon Platform</h1>
   <div class="tagline">{APP_TAGLINE}</div>
   <div class="badges">
     <span class="ocip-badge">{APP_VERSION}</span>
-    <span class="ocip-badge">75/75 tests</span>
+    <span class="ocip-badge">85/85 tests</span>
     <span class="ocip-badge gold">Apache-2.0</span>
     <span class="ocip-badge grey">UCST-CCIF engine</span>
     <span class="ocip-badge">10/10 equations mapped</span>
@@ -123,11 +123,11 @@ with st.sidebar:
                f"[Paper](https://ssrn.com/abstract=7417192) · v{APP_VERSION.lstrip('v')}")
 
 tab_upload, tab_report, tab_eq, tab_model, tab_bench = st.tabs([
-    "📥 1. Upload & Dictionary",
-    "🧾 2. Audit Report",
-    "📐 3. Equations (Eq.1–10)",
-    "📈 4. Model competition (M0–M3)",
-    "📊 5. Benchmarks",
+    "1. Upload & Dictionary",
+    "2. Audit Report",
+    "3. Equations (Eq.1–10)",
+    "4. Model competition (M0–M3)",
+    "5. Benchmarks",
 ])
 
 # ==================================================================
@@ -135,9 +135,10 @@ tab_upload, tab_report, tab_eq, tab_model, tab_bench = st.tabs([
 # ==================================================================
 with tab_upload:
     st.header("Upload the four ledgers")
-    st.caption("Every file is **optional** — missing ones become reported data gaps, "
-               "never silent estimates. Each CSV template carries a **`#` comment line** "
-               "with full names and units; download one and open it in Excel to see it.")
+    st.caption("Every file is **optional** — missing ledgers are reported as data "
+               "gaps, never silently estimated. Each CSV template carries a **`#` "
+               "comment line** with full column names and units; download a template "
+               "to inspect them.")
 
     # ---- CSV templates (with # comment lines: full name + unit + example) ----
     tmpl = {
@@ -184,7 +185,7 @@ with tab_upload:
                             (t4, "intervention", "Intervention ledger")):
         with col:
             st.download_button(
-                f"⬇ {label} template (CSV)", data=tmpl[key],
+                f"{label} template (CSV)", data=tmpl[key],
                 file_name=f"ocip_{key}_template.csv", mime="text/csv")
 
     st.divider()
@@ -235,8 +236,8 @@ with tab_upload:
         ("flux",
          [("date", "date", "YYYY-MM-DD", "time step (optional, auto-ignored)"),
           ("NEE_daily_total", "Net Ecosystem Exchange", "g C m⁻² day⁻¹", "audit target: site net carbon flux (S2)"),
-          ("GPP_daily_total", "Gross Primary Production", "g C m⁻² day⁻¹", "⚠️ algebraically derived from NEE — using it as a predictor leaks (S6)"),
-          ("ER_daily_total", "Ecosystem Respiration", "g C m⁻² day⁻¹", "⚠️ same, NEE = ER − GPP (S6)")]),
+          ("GPP_daily_total", "Gross Primary Production", "g C m⁻² day⁻¹", "Algebraically derived from NEE — using it as a predictor leaks (S6)"),
+          ("ER_daily_total", "Ecosystem Respiration", "g C m⁻² day⁻¹", "Same dependency: NEE = ER − GPP (S6)")]),
         ("stock",
          [("area_ha", "project area", "ha", "scale factor converting gC/m² to tCO₂e (S2/S4)"),
           ("removal_tco2e", "independently observed removal", "tCO₂e", "independent basis for reconciling claimed removals (S3)")]),
@@ -251,7 +252,7 @@ with tab_upload:
             ("flux", "Flux ledger", dict_rows[1][1]),
             ("stock", "Stock ledger", dict_rows[2][1]),
             ("intervention", "Intervention ledger", dict_rows[3][1])):
-        with st.expander(f"📖 {label} — column dictionary", expanded=False):
+        with st.expander(f"{label} — column dictionary", expanded=False):
             st.table(pd.DataFrame(rows, columns=["Column", "Full name", "Unit", "Role in the audit"]))
 
     st.divider()
@@ -260,11 +261,11 @@ with tab_upload:
         0.0, 1e9, 100.0, step=1.0, key="ocip_area_input")
     st.session_state["ocip_area"] = area_ha
 
-    st.info("**No manual Scope 1/2/3 math** — put `category` + `quantity` in the "
-            "activity ledger and stage S1 does all three: Scope 1=on-site fuel, "
-            "Scope 2=purchased electricity, Scope 3=supply chain (travel/commute/"
-            "procurement). Then go to **Tab 2 Audit Report** and press "
-            "**Run the audit**.")
+    st.info("**Scope 1/2/3 are computed automatically** — provide `category` + "
+            "`quantity` in the activity ledger; stage S1 applies the corresponding "
+            "emission factors (Scope 1 = on-site fuel, Scope 2 = purchased "
+            "electricity, Scope 3 = supply chain). Proceed to **Tab 2 Audit "
+            "Report** and run the audit.")
 
 # ==================================================================
 # 2. AUDIT REPORT
@@ -279,7 +280,7 @@ with tab_report:
     st.markdown("""
     <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;font-size:0.85rem;margin:6px 0 10px;">
       <div style="flex:2 1 380px;background:#fff;border:1px solid #d8dee4;border-radius:10px;padding:10px;">
-        <b>⚙️ 7-step pipeline run_audit()</b>
+        <b>7-step pipeline — run_audit()</b>
         <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
           <div style="border:1px solid #5c6b7a;border-radius:6px;padding:4px 6px;background:#f7f9fb;">S1 Boundary</div><span style="color:#5c6b7a;">→</span>
           <div style="border:1px solid #5c6b7a;border-radius:6px;padding:4px 6px;background:#f7f9fb;">S2 Factors</div><span style="color:#5c6b7a;">→</span>
@@ -292,12 +293,12 @@ with tab_report:
         <div style="margin-top:6px;color:#5c6b7a;font-size:0.75rem;">S3: ε_C = independent observation − company claim (negative = over-claim) · S5: active trigger F_a vs passive response F_p · S6: three-step leakage audit</div>
       </div>
       <div style="flex:1 1 220px;background:#eaf6ec;border:1px solid #b7d9bd;border-radius:10px;padding:10px;">
-        <b>📤 8 artifacts + certificate</b>
+        <b>8 artifacts + certificate</b>
         <div style="margin-top:6px;color:#2c3e50;line-height:1.6;font-size:0.8rem;">
           ① boundary inventory · ② emission interval · ③ removal interval · ④ residual ε_C<br/>
           ⑤ scale residual · ⑥ leakage RYG flag · ⑦ attribution split · ⑧ uncertainty budget
         </div>
-        <div style="margin-top:6px;border:1px solid #3a7d44;border-radius:6px;padding:4px 6px;background:#fff;font-weight:600;">🏅 PASS / REVIEW / FAIL / INCOMPLETE</div>
+        <div style="margin-top:6px;border:1px solid #3a7d44;border-radius:6px;padding:4px 6px;background:#fff;font-weight:600;">PASS / REVIEW / FAIL / INCOMPLETE</div>
       </div>
     </div>
     """, unsafe_allow_html=True)
@@ -358,13 +359,13 @@ with tab_report:
                    if rep.residual_eC_tco2e is not None else "—"),
                   help="Artifact 3: observed − claimed. Negative = over-claim (S3)")
         m4.metric("Leakage flag",
-                  {"red": "🔴 RED — leaky predictors",
-                   "amber": "🟠 AMBER", "green": "🟢 GREEN — clean",
-                   "grey": "⚪ no flux data"}.get(rep.leakage_ryg, "—"),
+                  {"red": "RED — leaky predictors",
+                   "amber": "AMBER", "green": "GREEN — clean",
+                   "grey": "no flux data"}.get(rep.leakage_ryg, "—"),
                   help="Artifact 5: RYG status of the flux model (S6, Eq.7)")
 
         # --- leakage verdict (formerly its own tab) ---
-        with st.expander("🛡️ Leakage verdict (S6)", expanded=True):
+        with st.expander("Leakage verdict (S6)", expanded=True):
             if rep.leakage is not None and rep.leakage.leaky_predictors:
                 st.markdown("**Flagged LEAKY predictors (NEE-derived, circular):** "
                             + ", ".join(f"`{p}`" for p in rep.leakage.leaky_predictors))
@@ -380,7 +381,7 @@ with tab_report:
                            "data gap, not estimated.")
 
         # --- scale audit: time-series εA (Eq.4) ---
-        with st.expander("📐 Scale audit — εA time series (Eq.4–5)", expanded=True):
+        with st.expander("Scale audit — εA time series (Eq.4–5)", expanded=True):
             sa = getattr(rep, "scale_audit", None)
             if sa is None or sa.get("status") == "not_run":
                 st.caption("No usable flux ledger — scale residual reported as a "
@@ -423,7 +424,7 @@ with tab_report:
 
         # --- PDF evidence pack (formerly its own tab) ---
         st.divider()
-        if st.button("📤 Download ISO 14064-3 evidence pack (PDF)"):
+        if st.button("Download ISO 14064-3 evidence pack (PDF)"):
             from reportlab.lib.pagesizes import A4
             from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
             from reportlab.lib.styles import getSampleStyleSheet
@@ -494,58 +495,58 @@ with tab_eq:
     """, unsafe_allow_html=True)
 
     eq_cards = [
-        dict(n="Eq. (1)", badge="🟢 Core in UI · S3 hard gate",
+        dict(n="Eq. (1)", badge="Core in UI · S3 hard gate",
              title="Stock–flux accounting identity (conservation-constrained)",
              latex=(r"\frac{dC}{dt} = \sum_{j} F_{i\to j} - \sum_{j} F_{j\to i} "
                     r"+ Q_{env} + Q_{agent} + \varepsilon_C \quad,\quad "
                     r"\varepsilon_C = \Delta C_{obs} - \Delta C_{balance}"),
              logic="Carbon-pool change must equal net internal transfers + environmental in/out + agent-mediated in/out; the balance εC is a diagnostic residual, not a free correction term.",
              where="`compartments.step()` computes εC every step; the ledger version lives in `attribution.conservation_reconcile` (observed − claimed, negative = over-claim); stage S3 renders the PASS/FAIL verdict."),
-        dict(n="Eq. (2)", badge="🔵 Optional in UI · S5b",
+        dict(n="Eq. (2)", badge="Optional in UI · S5b",
              title="Agent-mediated flux (compositional hypothesis)",
              latex=r"F_{agent} = f\big(E,\; z,\; g,\; \theta_{agent}\big)",
              logic="A flux is classified as agent-mediated (intervention test) only if changes in internal state z / management variable g reproducibly alter it; otherwise it counts as environmental flux.",
              where="`models.M2aAgent` (model competition); `attribution.attribution_split` (identifiable only if R² gain ≥ 0.005); filling the Agent-state column in the UI triggers it."),
-        dict(n="Eq. (3)", badge="🟢 Core in UI · S5",
+        dict(n="Eq. (3)", badge="Core in UI · S5",
              title="Dual-force decomposition — active + passive (decomposition hypothesis)",
              latex=r"F_{hybrid} = F_{active} + F_{passive}",
              logic="Hybrid human interventions split into two: active trigger (deliberate human action) and passive response (post-intervention ecological dynamics). Additionality = intervention − baseline.",
              where="`models.m3_counterfactual` (military/restoration/DAC defaults for F_a/F_p); `attribution.additionality_counterfactual`; called directly by the Intervention ledger (Eq.3) in the UI."),
-        dict(n="Eq. (4)", badge="🟢 Implemented · S4 time-series εA",
+        dict(n="Eq. (4)", badge="Implemented · S4 time-series εA",
              title="Aggregation commutator residual (scale-translation hypothesis)",
              latex=(r"\varepsilon_A(s) = A(s)\big[\, f_s(x_s)\,\big] "
                     r"- f_{s+1}\big[\, A(s)\,x_s \,\big]"),
              logic="The same flux series walks two paths: evolve at fine scale then aggregate, minus aggregate then evolve — the difference is εA; stronger nonlinearity, within-month variance or spikes give larger εA; max|εA| above tolerance relative to total flux fails the scale check.",
              where="`audit_pipeline.time_series_scale_audit` lands this equation in the time dimension (daily integral vs monthly-mean then integrate; Tab 2/S4 shows the series and per-month εA); the stock-vs-flux scalar reconciliation remains as a secondary view. The spatial aggregation operator A(s) is not yet implemented."),
-        dict(n="Eq. (5)", badge="🔴 Not implemented standalone",
+        dict(n="Eq. (5)", badge="Not implemented standalone",
              title="Downscaling operator (scale-translation hypothesis)",
              latex=r"x_{s} = D(s)\, x_{s+1} + \zeta(s)",
              logic="Coarse-scale state is rebuilt down to fine scale; ζ(s) carries fine-scale covariates absent from the coarse state; the residual needs a pre-specified tolerance.",
              where="No standalone downscaling operator yet; the S4 dual-ledger reconciliation partially covers it indirectly."),
-        dict(n="Eq. (6)", badge="🟡 In library · not in UI",
+        dict(n="Eq. (6)", badge="In library · not in UI",
              title="Observation model (measurement model)",
              latex=r"y^{(k)} = H^{(k)}(x) + b^{(k)} + \eta^{(k)}",
              logic="Observation ≠ truth: H is the observation operator, b the systematic bias, η the random error. Makes multi-source data comparable without assuming any single observation directly represents the full ecosystem state.",
              where="`assimilation.observation_operator()` (H explicit but currently the identity on NEE) + `nudge_update` relaxation assimilation (2σ threshold, absorbed into the least-certain pool)."),
-        dict(n="Eq. (7)", badge="🟢 Core in UI · S6 hard gate",
+        dict(n="Eq. (7)", badge="Core in UI · S6 hard gate",
              title="Flux partitioning → target leakage (algebraic identity)",
              latex=(r"\mathrm{GPP} - \mathrm{ER} = \mathrm{NEE} \quad\Rightarrow\quad "
                     r"\text{partitioned predictors leak the target}"),
              logic="GPP/ER are algebraic transforms of NEE: any model predicting NEE from GPP/ER/cumulative carbon balance circularly references the target — classify first, then screen for correlation, then refit leakage-free.",
              where="`leakage.py` three-step audit; S6 outputs the RYG flag + the apparent gain % of the leakage-free refit (Sapelo honest baseline: 36.1%)."),
-        dict(n="Eq. (8)", badge="🟡 Implemented · CLI/paper scripts",
+        dict(n="Eq. (8)", badge="Implemented · CLI/paper scripts",
              title="M0 baseline — partitioned baseline model (15 parameters)",
              latex=(r"\mathrm{NEE}_{M0}(t) = \underbrace{\sum_{n=1}^{3}\big[ a_n \sin(n\omega t) + b_n \cos(n\omega t)\big]}_{\text{Fourier seasonal}} "
                     r"+ \sum_{i}\beta_i X_i(t) + c\, K_{hurricane}(t)"),
              logic="Third-order Fourier seasonality + exogenous meteorological predictors + exponentially decaying hurricane kernel; no system-level conservation constraint — the structural null hypothesis.",
              where="`models.M0Baseline` maps term by term; CLI `ucst-ccif compare`; paper scripts `03_Code/LiuYG_03*`. Now runnable in Tab 4."),
-        dict(n="Eq. (9)", badge="🟡 Implemented · CLI/paper scripts",
+        dict(n="Eq. (9)", badge="Implemented · CLI/paper scripts",
              title="M1 conservation-constrained — conservation-integrated (17 parameters)",
              latex=(r"\mathrm{NEE}_{M1}(t) = \mathrm{NEE}_{M0}(t) + c_C\, C_{state}(t) "
                     r"+ c_{\Delta C}\, \Delta C_{state}(t)"),
              logic="Adds a purely exogenous, leakage-free conservation-state term to M0 (meteorological anomaly z-score → cumulative → detrended), testing whether the conservation constraint yields out-of-sample gain.",
              where="`models.M1Conservation` + `compute_conservation_state` (consistent with the manuscript's leakage-independent conservation-state definition); CLI compare — now runnable in Tab 4."),
-        dict(n="Eq. (10)", badge="🟡 Available via Eq.(3)",
+        dict(n="Eq. (10)", badge="Available via Eq.(3)",
              title="M3 counterfactual scenarios (active + passive)",
              latex=(r"\Delta \mathrm{NEE}_{scenario} = F_{a} + F_{p} "
                     r"\qquad \text{(military / restoration / DAC)}"),
@@ -607,16 +608,16 @@ with tab_model:
     if model_df is None:
         model_df = st.session_state.get("ocip_flux")
     if model_df is None:
-        st.info("No flux ledger detected. Upload a **Flux ledger** in **Tab 1** "
-                "(a CSV with date + NEE_daily_total, e.g. "
-                "`testdata/gba_flux_guangzhou_2023.csv`), or upload a model CSV "
-                "above. Once uploaded it appears below — no need to re-upload.")
+        st.info("No flux data available. Upload a flux ledger in **Tab 1** "
+                "(a CSV with `date` + `NEE_daily_total`, e.g. "
+                "`testdata/gba_flux_guangzhou_2023.csv`), or a model CSV "
+                "above. The dataset is retained for the session after upload.")
     else:
         src = ("model CSV uploaded here"
                if st.session_state.get("ocip_model_df") is not None
                else "Tab 1 flux ledger")
         st.caption(f"Data source: **{src}** · {len(model_df)} rows × "
-                   f"{len(model_df.columns)} columns · ready")
+                   f"{len(model_df.columns)} columns · loaded")
         num_cols = [c for c in model_df.columns
                     if c != "date" and pd.api.types.is_numeric_dtype(model_df[c])]
         if not num_cols:
@@ -897,7 +898,7 @@ with tab_bench:
     st.markdown('<span class="ocip-section">H. How to use & where the data comes from</span>',
                 unsafe_allow_html=True)
     st.markdown(
-        "**The audit is the product, not the number.** Three rules:\n\n"
+        "**Verification workflow.** Three rules:\n\n"
         "1. **Upload** — your four ledgers are the only thing the audit consumes. "
         "Missing files are reported as data gaps, never silently estimated.\n"
         "2. **Run** — the 7-step pipeline verifies your numbers against independent "
@@ -906,14 +907,14 @@ with tab_bench:
         "for comparison, not substitutes for your data.\n\n"
         "Free data sources: FLUXNET (fluxnet.org, CC-BY-4.0) · JapanFlux2024 · "
         "ChinaFLUX/NESDC (Jinfo 2020–2022) · CEADs provincial · HK EPD · ERA5/Open-Meteo · "
-        "TROPOMI CH₄ · Sentinel-2/GEDI biomass. Full column-by-column sourcing lives in "
-        "the old Data Guide tab — ask to restore it if you need it."
+        "TROPOMI CH₄ · Sentinel-2/GEDI biomass. Column-level sourcing is "
+        "documented in each ledger's column dictionary."
     )
 
 # ------------------------------------------------------------------
 st.markdown(f"""
 <div class="ocip-footer">
   OCIP {APP_VERSION} · UCST-CCIF engine · {GITHUB_URL} · DOI {DOI_URL}<br/>
-  The audit is the product — not the number.
+  Every audit output is traceable to source data and equations.
 </div>
 """, unsafe_allow_html=True)
