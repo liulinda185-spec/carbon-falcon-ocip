@@ -1,0 +1,9 @@
+# Runtime dependencies for the OCIP / Carbon Falcon Streamlit app.
+# Mirrors pyproject.toml dependencies + [app] extras, pinned to the
+# locally-verified versions so the deployed app behaves identically.
+streamlit==1.66.1
+pandas>=2.0
+numpy>=1.24
+scipy>=1.10
+requests>=2.31
+reportlab>=4.0

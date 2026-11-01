@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ucst-ccif"
+version = "0.3.0"
+description = "Conservation-Constrained Integrated Framework for cross-scale carbon flux accounting"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Yingge Liu", email = "yinggliu2-c@my.cityu.edu.hk"}
+]
+keywords = ["carbon", "ecosystem", "flux", "uncertainty", "MRV", "ISO14064"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "scipy>=1.10",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "build", "twine"]
+app = ["streamlit>=1.30", "requests>=2.31", "reportlab>=4.0"]
+data = ["xarray>=2024.1", "netCDF4>=1.6", "h5netcdf>=1.3"]
+
+[project.scripts]
+ucst-ccif = "ucst_ccif.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ucst_ccif*"]
