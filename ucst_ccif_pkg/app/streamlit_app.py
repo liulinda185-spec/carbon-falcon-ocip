@@ -159,10 +159,12 @@ with tab_upload:
             "# date: date (YYYY-MM-DD) | "
             "NEE_daily_total: Net Ecosystem Exchange, g C m-2 day-1, negative = uptake | "
             "GPP_daily_total: Gross Primary Production, g C m-2 day-1 | "
-            "ER_daily_total: Ecosystem Respiration, g C m-2 day-1\n"
-            "date,NEE_daily_total,GPP_daily_total,ER_daily_total,wind_speed_mean,temperature_2m_mean\n"
-            "2023-01-01,3.92,2.27,1.29,14.7,14.0\n"
-            "2023-01-02,4.47,1.90,1.14,20.2,15.3\n"),
+            "ER_daily_total: Ecosystem Respiration, g C m-2 day-1 | "
+            "water_level: agent-state management signal (e.g. tidal level), "
+            "optional — enables M2a (Eq.2)\n"
+            "date,NEE_daily_total,GPP_daily_total,ER_daily_total,wind_speed_mean,temperature_2m_mean,water_level\n"
+            "2023-01-01,3.92,2.27,1.29,14.7,14.0,2.1\n"
+            "2023-01-02,4.47,1.90,1.14,20.2,15.3,2.4\n"),
         "stock": (
             "# Stock ledger — full names & units\n"
             "# area_ha: project area, hectare | "
@@ -589,7 +591,7 @@ with tab_model:
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:0.82rem;margin:6px 0 10px;">
       <div style="border:1px solid #5c6b7a;border-radius:6px;padding:4px 8px;background:#f7f9fb;"><b>M0</b> Eq.(8) baseline · 15 params</div><span style="color:#5c6b7a;">→</span>
       <div style="border:1px solid #5c6b7a;border-radius:6px;padding:4px 8px;background:#f7f9fb;"><b>M1</b> Eq.(9) conservation state · 17 params</div><span style="color:#5c6b7a;">→</span>
-      <div style="border:1px solid #5c6b7a;border-radius:6px;padding:4px 8px;background:#f7f9fb;"><b>M2a</b> Eq.(2) agent feedback · 19 params</div><span style="color:#5c6b7a;">→</span>
+      <div style="border:1px solid #5c6b7a;border-radius:6px;padding:4px 8px;background:#f7f9fb;"><b>M2a</b> Eq.(2) agent feedback · 19 params (§5)</div><span style="color:#5c6b7a;">→</span>
       <div style="border:1px solid #5c6b7a;border-radius:6px;padding:4px 8px;background:#f7f9fb;"><b>M3</b> Eq.(10) counterfactual scenario</div>
       <div style="margin-left:8px;color:#5c6b7a;">Protocol identical to paper §5: calib ≤ cutoff year · valid > cutoff year · leakage-free exogenous predictors</div>
     </div>
@@ -649,8 +651,13 @@ with tab_model:
                                            dist_options, key="mc_dist")
             agent_options = [None] + [c for c in exo_candidates
                                       if c not in set(exo_cols)]
-            agent_col = st.selectbox("Agent-state column (optional → runs M2a, Eq.2)",
+            agent_col = st.selectbox("Agent-state column (management signal — "
+                                     "enables M2a, Eq.2)",
                                      agent_options, key="mc_agent")
+            if len(agent_options) == 1:
+                st.caption("No management-signal column in the data — M2a (Eq.2) "
+                           "is skipped. Add a column such as `water_level` or "
+                           "`mangrove_age` to enable the agent-feedback model.")
             calib_year = st.number_input("Calibration end year", 2000, 2100, 2020,
                                          key="mc_calib")
             if st.button("Run model competition", type="primary"):

@@ -1,0 +1,5 @@
+scope,category,activity_key,quantity
+2,electricity,guangdong,1135589.4
+1,fuel,diesel_L,20000.0
+2,purchased_goods,manufactured_goods,2000000.0
+3,purchased_goods,manufactured_goods,1500000.0
