@@ -68,12 +68,6 @@ Four ledgers in → a 7-step falsification pipeline → eight audited outputs pl
 
 **Worked example** — a company books 420 tCO₂e removed but claims 600: S3 computes ε_C = 420 − 600 = **−180 t** ⇒ certificate **FAIL — over-claim detected**. Negative ε_C always means the books claim more than the independent record supports.
 
-## Deploy it publicly (free)
-
-1. **Streamlit Community Cloud** (easiest, free): go to <https://share.streamlit.io> → **Sign in with GitHub** → **New app** → pick `liulinda185-spec/carbon-falcon-ocip` → Main file: `ucst_ccif_pkg/app/streamlit_app.py` → **Deploy**.
-2. **Hugging Face Spaces** (alternative, free): create a Space → SDK **Streamlit** → import this repo → Main file `ucst_ccif_pkg/app/streamlit_app.py`; `requirements.txt` lists `streamlit`, `pandas`, `numpy`, `scipy`, `reportlab`.
-3. **Your own server** (most control): install `.[app]`, then `streamlit run app/streamlit_app.py --server.port 80`.
-
 ## Tests
 
 ```bash
