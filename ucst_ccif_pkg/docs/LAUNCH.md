@@ -59,7 +59,18 @@ erroring.
 4. Dependencies come from the **repository-root `requirements.txt`**, which now
    carries `sqlalchemy`, `psycopg[binary]` and `authlib`. The package folder has
    its own copy for local installs; if you add a dependency, add it to both.
-5. Paste the secrets. Sandbox app:
+5. Optional but recommended: let the helper turn Neon's URL into a working one,
+   verify it, and print the TOML for you —
+
+   ```bash
+   python tools/prepare_cloud.py --url "postgresql://user:pass@host/db?sslmode=require" --mode public
+   ```
+
+   It rewrites the scheme to `postgresql+psycopg://`, runs the full selftest
+   against the real database (`event round-trip: ok` and `cleanup: ok` included),
+   and only then prints the Secrets block. `--mode pilot` prints the version with
+   `[auth]` and `[ocip.orgs]`. If the check fails, do not deploy.
+6. Paste the secrets. Sandbox app:
 
    ```toml
    [ocip]
@@ -114,7 +125,7 @@ erroring.
    `event` under org `public`. Consent is not asked because nothing of theirs is
    stored; the notice shown in tab 1 changes to match (`_data_notice()`).
 
-6. Deploy. First boot creates the schema and seeds the 28 factor rows.
+7. Deploy. First boot creates the schema and seeds the 28 factor rows.
 
 Free-tier apps sleep when idle; the first visitor after a quiet spell waits
 ~30 seconds. That is a real cost for a launch post — publish when you are

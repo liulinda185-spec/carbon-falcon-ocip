@@ -107,7 +107,7 @@ st.markdown(f"""
   <div class="tagline">{APP_TAGLINE}</div>
   <div class="badges">
     <span class="ocip-badge">{APP_VERSION}</span>
-    <span class="ocip-badge">113/113 tests</span>
+    <span class="ocip-badge">118/118 tests</span>
     <span class="ocip-badge gold">Apache-2.0</span>
     <span class="ocip-badge grey">UCST-CCIF engine</span>
     <span class="ocip-badge">10/10 equations mapped</span>
