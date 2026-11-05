@@ -1,8 +1,15 @@
 [browser]
 gatherUsageStats = false
 
+# Streamlit Cloud reads this file from the repository root; a local run from
+# inside ucst_ccif_pkg/ picks up ucst_ccif_pkg/.streamlit/config.toml instead.
+# Keep the two in sync.
+
 [server]
 headless = true
+# 50 MB is far above a year of daily flux data (365 rows ≈ 21 kB); the cap
+# stops a public link from being used to exhaust disk or memory.
+maxUploadSize = 50
 
 [theme]
 primaryColor = "#1F497D"

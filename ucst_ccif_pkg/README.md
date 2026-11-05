@@ -66,6 +66,47 @@ Leakage / PDF tabs were removed: the four-ledger upload already covers them
 (Scope 1–3 via the activity ledger in S1, biogenic flux via the flux ledger in
 S2, leakage in S6, PDF export post-audit).
 
+## Persistence (multi-user)
+
+The app runs with no database. Point it at PostgreSQL and it becomes
+multi-tenant: uploads become immutable checksum-addressed *loads*, audits become
+*runs* that cite the loads they consumed, and the emission factors live in a
+versioned table instead of only in code.
+
+```bash
+pip install -e ".[app]"
+export OCIP_DATABASE_URL="postgresql+psycopg://user:pass@host:5432/ocip?sslmode=require"
+python -m ucst_ccif.store --selftest --url "$OCIP_DATABASE_URL"   # round-trips, then cleans up
+streamlit run app/streamlit_app.py
+```
+
+Schema, roles, secrets, sign-in and the current limitations are documented in
+[`docs/POSTGRES.md`](docs/POSTGRES.md). `sql/schema.sql` is generated from
+`ucst_ccif/store.py` (`python -m ucst_ccif.store --ddl`), so the two cannot
+drift.
+
+### Running it for other people
+
+Two deployments from one repository:
+
+- **Public sandbox** — `OCIP_DEMO_MODE=1`. Sample data is preloaded so a
+  visitor reaches a certificate without owning data, and a configured database
+  is ignored: nothing is written.
+- **Invited pilot** — `[auth]` plus a Postgres URL. Each account maps to an
+  organisation; uploads stay disabled until the data notice is acknowledged;
+  tab 6 stores feedback.
+
+The pilot also writes a step-level `event` row (`app_open`, `consent_accepted`,
+`sample_loaded`, `upload_ok`, `upload_rejected`, `audit_run`, `pdf_export`,
+`feedback_view`) so you can see where a tester stopped. It holds no IP, no
+user agent and no typed text, and the sandbox writes none of it. Read the funnel
+with `Store.funnel(org_id=...)` or the third query in
+[`docs/LAUNCH.md`](docs/LAUNCH.md).
+
+Step-by-step for Neon, Streamlit Cloud, Google sign-in, the data notice and the
+feedback loop: [`docs/LAUNCH.md`](docs/LAUNCH.md). Notice template:
+[`docs/DATA_NOTICE.md`](docs/DATA_NOTICE.md).
+
 ## How the audit works (S1–S7 → 8 artifacts)
 
 Four ledgers in → a 7-step falsification pipeline → eight audited outputs plus a certificate.

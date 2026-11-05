@@ -1,5 +1,5 @@
 """
-UCST-CCIF Streamlit MVP — v0.4.0 (5 workspaces)
+UCST-CCIF Streamlit MVP — v0.4.0 (6 workspaces)
 
 Workspaces:
   1. Upload & Dictionary — four ledgers (activity / flux / stock / intervention),
@@ -18,6 +18,17 @@ Workspaces:
      predictions and the M3 counterfactual scenario calculator.
   5. Benchmarks — official reference data (CEADs Guangdong / Global Carbon
      Budget / HK EPD / CH4 kernels / CCER mangrove lookup) + NGFS stress lens.
+  6. Data & history — optional PostgreSQL persistence (see docs/POSTGRES.md):
+     every upload is an immutable, checksum-addressed load; every audit is a
+     run pointing at the loads it consumed. Without a database this tab says
+     so and nothing is written — and with OCIP_DEMO_MODE=1 it says *demo*,
+     because a configured database is then deliberately ignored.
+
+Community-trial affordances: tab 1 can load a session-only sample dataset
+(Guangzhou 2023) so a stranger reaches a certificate without owning data; when
+a database is linked, uploads stay disabled until the data notice is
+acknowledged; and tab 6 stores free-text feedback (or shows a form link when no
+database is linked).
 
 Why the old tabs disappeared: uploading the four ledgers already covers
 Scope 1-3 (activity ledger, stage S1), biogenic flux (flux ledger, stage S2),
@@ -27,6 +38,7 @@ duplicate entry points, so they were removed.
 
 from __future__ import annotations
 import io
+import os
 import sys
 import pathlib as _pl
 from datetime import datetime
@@ -48,6 +60,8 @@ from ucst_ccif.emission_factors import (
     FUELS, GRID_FACTORS_MEE_2022, GRID_SOURCE,
     TD_LOSS_RATE, TRAVEL_FACTORS, COMMUTE_FACTORS, SPEND_FACTORS,
 )
+from ucst_ccif.tenancy import mapping_is_enforced as _mapping_is_enforced
+from ucst_ccif.tenancy import resolve_org as _resolve_org
 
 # ------------------------------------------------------------------
 # Brand & theme
@@ -93,7 +107,7 @@ st.markdown(f"""
   <div class="tagline">{APP_TAGLINE}</div>
   <div class="badges">
     <span class="ocip-badge">{APP_VERSION}</span>
-    <span class="ocip-badge">85/85 tests</span>
+    <span class="ocip-badge">112/112 tests</span>
     <span class="ocip-badge gold">Apache-2.0</span>
     <span class="ocip-badge grey">UCST-CCIF engine</span>
     <span class="ocip-badge">10/10 equations mapped</span>
@@ -102,6 +116,278 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 st.caption("One auditable ledger: fossil + biogenic flux · leakage audit built in · "
            "L1 point flux → L5 policy · same factors, same ε_C residual rule at every scale.")
+
+# ------------------------------------------------------------------
+# Persistence — optional PostgreSQL (multi-user) or SQLite (local dev).
+# Every helper below fails soft: the app must run with no database at all.
+# ------------------------------------------------------------------
+def _secret(*path, default=None):
+    """Read st.secrets[...] without letting a missing secrets.toml crash the app."""
+    try:
+        node = st.secrets
+        for key in path:
+            node = node[key]
+    except Exception:  # noqa: BLE001
+        return default
+    return default if node is None else node
+
+
+@st.cache_resource(show_spinner=False)
+def _build_store(url: str):
+    from ucst_ccif.store import Store
+
+    store = Store(url)
+    store.ensure_schema()   # idempotent: creates only what is missing
+    store.seed_factors()    # writes the factor library once
+    return store
+
+
+def _demo_mode() -> bool:
+    """Public sandbox: sample data in, nothing written out.
+
+    Set OCIP_DEMO_MODE=1 in the environment or `demo = true` under [ocip] in
+    secrets. In this mode a configured database is deliberately ignored, so
+    anonymous testers cannot write into the ledger you intend to analyse.
+    """
+    env = os.environ.get("OCIP_DEMO_MODE", "").strip().lower()
+    if env in {"1", "true", "yes", "on"}:
+        return True
+    return bool(_secret("ocip", "demo", default=False))
+
+
+def _store():
+    """(Store | None, reason). Never raises."""
+    if _demo_mode():
+        return None, "demo sandbox — sample data only, nothing is stored"
+    url = (_secret("postgres", "url", default=None)
+           or os.environ.get("OCIP_DATABASE_URL"))
+    if not url:
+        return None, "no connection string configured"
+    try:
+        return _build_store(url), "ok"
+    except Exception as exc:  # noqa: BLE001
+        return None, f"{type(exc).__name__}: {exc}"
+
+
+def _identity():
+    """(email, org_id). st.login when configured, otherwise a dev identity."""
+    email = None
+    try:
+        if st.user.is_logged_in:
+            email = getattr(st.user, "email", None)
+    except Exception:  # noqa: BLE001
+        email = None
+    email = email or _secret("ocip", "dev_user", default=None) or "local@dev"
+    orgs = _secret("ocip", "orgs", default=None) or {}
+    org = _resolve_org(
+        email, orgs,
+        default_org=str(_secret("ocip", "default_org", default="demo")),
+        allow_unknown=bool(_secret("ocip", "allow_unknown", default=False)))
+    return email, str(org or _secret("ocip", "default_org", default="demo"))
+
+
+def _current_site():
+    return st.session_state.get("ocip_site") or _secret(
+        "ocip", "default_site", default="GBA-DEMO-01")
+
+
+_EVENT_VERBS = {
+    "app_open", "consent_accepted", "sample_loaded", "upload_ok",
+    "upload_rejected", "audit_run", "pdf_export", "feedback_view",
+}
+
+
+def _log_event(verb, **detail):
+    """One step of the pilot funnel. Silent no-op without a database.
+
+    The public sandbox never reaches the table: demo mode returns no store at
+    all. Telemetry must never be able to break an audit, so failures are
+    swallowed rather than surfaced.
+    """
+    store, _ = _store()
+    if store is None:
+        return
+    email, org = _identity()
+    try:
+        store.log_event(org_id=org, site_id=_current_site(), verb=verb,
+                        detail=(detail or None), created_by=email)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def _log_once(key, verb, **detail):
+    """Log at most once per browser session."""
+    flag = f"ocip_ev_{key}"
+    if st.session_state.get(flag):
+        return
+    st.session_state[flag] = True
+    _log_event(verb, **detail)
+
+
+def _persist_ledger(ledger, df, file_name):
+    """Store one uploaded ledger. Silent no-op when no database is linked."""
+    store, _ = _store()
+    if store is None:
+        return
+    email, org = _identity()
+    try:
+        ref = store.put_ledger(org_id=org, site_id=_current_site(), ledger=ledger,
+                               df=df, file_name=file_name, loaded_by=email)
+    except Exception as exc:  # noqa: BLE001
+        st.warning(f"Could not persist {ledger} ledger: {exc}")
+        return
+    st.session_state.setdefault("ocip_loads", {})[ledger] = ref.load_id
+    _log_event("upload_ok", ledger=ledger, rows=ref.row_count,
+               dedup=bool(ref.deduplicated))
+    tag = "re-used" if ref.deduplicated else "saved"
+    st.caption(f"Postgres → {tag} load `{ref.load_id[:8]}` · {ref.row_count} rows "
+               f"· sha256 {ref.sha256[:8]}…")
+
+
+def _persist_audit(report, *, area_ha, claimed, agent_col, grid_region):
+    store, _ = _store()
+    if store is None:
+        return
+    email, org = _identity()
+    try:
+        run_id = store.save_audit(
+            org_id=org, site_id=_current_site(), report=report,
+            loads=st.session_state.get("ocip_loads", {}),
+            label=f"audit {datetime.now():%Y-%m-%d %H:%M}",
+            created_by=email, area_ha=area_ha,
+            claimed_removals_tco2e=claimed, grid_region=grid_region,
+            agent_col=agent_col)
+    except Exception as exc:  # noqa: BLE001
+        st.warning(f"Audit ran but was not persisted: {exc}")
+        return
+    st.session_state["ocip_last_run"] = run_id
+    _log_event("audit_run", certificate=getattr(report, "certificate_status", None),
+               loads=len(st.session_state.get("ocip_loads", {})),
+               area_ha=area_ha, grid_region=grid_region)
+    st.caption(f"Postgres → run `{run_id[:8]}` saved with its ledger loads")
+
+
+def _auth_enabled() -> bool:
+    """True when an [auth] block exists — i.e. real sign-in is expected."""
+    return bool(_secret("auth", default=None))
+
+
+def _signed_in() -> bool:
+    try:
+        return bool(st.user.is_logged_in)
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _invite_list_active() -> bool:
+    """An [ocip.orgs] map exists and unknown emails are not waved through.
+
+    Without this, an invite-only pilot is a fiction: any Google account that
+    signs in falls back to default_org and can read that org's ledgers.
+    """
+    return _mapping_is_enforced(
+        _secret("ocip", "orgs", default=None),
+        allow_unknown=bool(_secret("ocip", "allow_unknown", default=False)))
+
+
+def _email_allowed(email) -> bool:
+    return _resolve_org(email, _secret("ocip", "orgs", default=None) or {},
+                        default_org="", allow_unknown=False) is not None
+
+
+_SAMPLE_DIR = _APP_ROOT / "testdata"
+
+_DATA_NOTICE = (
+    "**When a database is linked, this is what gets stored:** the file you upload "
+    "row by row, its filename, its SHA-256 checksum, your email, your organisation "
+    "and site ID, and the audit report.\n\n"
+    "- **Why:** so an audit can be traced back to the exact bytes it read, and so "
+    "your runs stay separate from another organisation's.\n"
+    "- **Who sees it:** people mapped to your organisation, plus whoever operates "
+    "this deployment.\n"
+    "- **How long:** until you ask for deletion. Ledger rows are append-only — a "
+    "correction arrives as a new file, not an overwrite of the old one.\n"
+    "- **Deletion:** ask the operator; the site's loads, runs and feedback are "
+    "removed together.\n"
+    "- **Steps we count:** while this deployment is used for a pilot, we also record "
+    "*which* step you reached (opened, ticked consent, loaded the sample, uploaded, "
+    "ran the audit, exported the PDF, opened the feedback box) with the time and "
+    "your email — never what you typed. No IP address, no browser fingerprint. This "
+    "is how failures in the funnel get found; it is not used to profile you.\n"
+    "- **Please don't upload** personal data, or company data you have no "
+    "permission to share."
+)
+
+
+def _consent_required() -> bool:
+    """Consent matters only when something is actually written to a database."""
+    store, _ = _store()
+    return store is not None
+
+
+def _sample_frames() -> dict[str, pd.DataFrame]:
+    """Guangzhou 2023 daily NEE + demo activity/stock — for a first run."""
+    act = pd.DataFrame([
+        {"scope": "2", "category": "electricity",
+         "activity_key": "guangdong", "quantity": 1135589.4},
+        {"scope": "1", "category": "fuel",
+         "activity_key": "diesel_L", "quantity": 20000.0},
+    ])
+    stock = pd.DataFrame([{"area_ha": 100.0, "removal_tco2e": 380.0}])
+    flux_path = _SAMPLE_DIR / "gba_flux_guangzhou_2023.csv"
+    if not flux_path.exists():
+        raise FileNotFoundError(f"sample dataset missing: {flux_path}")
+    flux = pd.read_csv(flux_path, comment="#")
+    return {"activity": act, "flux": flux, "stock": stock}
+
+
+# With [auth] configured, an unauthenticated visitor must not reach the data at
+# all — st.login() is an explicit action, so without this gate the app would
+# quietly fall back to the dev identity and expose that org's ledgers.
+if _auth_enabled() and not _signed_in():
+    st.markdown("## Sign in to OCIP")
+    st.info("This deployment is multi-user — each account is routed to its own "
+            "organisation, and ledgers are never shared across tenants.")
+    if st.button("Sign in", type="primary"):
+        st.login()
+    st.stop()
+
+
+# Signing in is not the same as being invited. With an [ocip.orgs] map in place,
+# an account that is not listed is stopped here rather than dropped into
+# default_org — the difference between an invite-only pilot and a public one.
+if _auth_enabled() and _signed_in() and _invite_list_active():
+    _visitor = None
+    try:
+        _visitor = getattr(st.user, "email", None)
+    except Exception:  # noqa: BLE001
+        _visitor = None
+    if not _email_allowed(_visitor):
+        st.markdown("## This pilot is invite-only")
+        st.error(f"`{_visitor}` is not on the access list for this deployment.")
+        st.caption("Ask the operator to add your address to `[ocip.orgs]` in the "
+                   "app's secrets, then reload this page.")
+        if st.button("Sign out"):
+            st.logout()
+        st.stop()
+
+
+# First step of the funnel: once per browser session, pilot only (in demo mode
+# there is no store, so this is a no-op).
+_log_once("open", "app_open", page="1. Upload & Dictionary")
+
+
+# The public sandbox opens with something to audit: a visitor who has no data
+# should still reach a certificate before being asked to upload anything.
+if _demo_mode() and not st.session_state.get("ocip_demo_seeded"):
+    try:
+        for _key, _frame in _sample_frames().items():
+            st.session_state[f"ocip_{_key}"] = _frame
+        st.session_state["ocip_area"] = 100.0
+        st.session_state["ocip_demo_seeded"] = True
+    except Exception:  # noqa: BLE001
+        pass
+
 
 # ------------------------------------------------------------------
 # Sidebar
@@ -116,18 +402,45 @@ with st.sidebar:
     grid_factor = GRID_FACTORS_MEE_2022[region]
     st.info(f"Grid EF: {grid_factor:.4f} kgCO2/kWh\n({GRID_SOURCE})")
     st.divider()
+
+    _store_obj, _store_reason = _store()
+    if _store_obj is not None:
+        engine = ("PostgreSQL" if _store_obj.dialect == "postgresql"
+                  else f"{_store_obj.dialect} (local dev)")
+        st.success(f"**Store:** {engine} — persisted")
+        st.caption(f"org `{_identity()[1]}` · site-scoped")
+    else:
+        if _demo_mode():
+            st.info("**Store:** demo sandbox — sample data, nothing stored")
+        else:
+            st.warning("**Store:** session-only — uploads vanish on refresh")
+        st.caption(_store_reason)
+    st.session_state.setdefault(
+        "ocip_site", _secret("ocip", "default_site", default="GBA-DEMO-01"))
+    st.text_input("Site ID", key="ocip_site",
+                  help="Every ledger load and audit run is filed under this site.")
+    st.caption(f"User `{_identity()[0]}`")
+    if _auth_enabled() and _signed_in():
+        if not _invite_list_active():
+            st.caption("Note: no `[ocip.orgs]` list — any signed-in account lands "
+                       "in `default_org`. Add one before sharing this link.")
+        if st.button("Sign out", key="ocip_logout"):
+            st.logout()
+
+    st.divider()
     st.caption("**How to use** — 1) upload your four ledgers, 2) run the audit, "
                "3) compare against official benchmarks. Every number is traceable "
                "to a source or a formula in this app.")
     st.caption(f"[GitHub]({GITHUB_URL}) · [Zenodo DOI]({DOI_URL}) · "
                f"[Paper](https://ssrn.com/abstract=7417192) · v{APP_VERSION.lstrip('v')}")
 
-tab_upload, tab_report, tab_eq, tab_model, tab_bench = st.tabs([
+tab_upload, tab_report, tab_eq, tab_model, tab_bench, tab_data = st.tabs([
     "1. Upload & Dictionary",
     "2. Audit Report",
     "3. Equations (Eq.1–10)",
     "4. Model competition (M0–M3)",
     "5. Benchmarks",
+    "6. Data & history",
 ])
 
 # ==================================================================
@@ -192,6 +505,40 @@ with tab_upload:
 
     st.divider()
 
+    # ---- quick start: sample dataset · consent · data notice ----
+    q1, q2 = st.columns([1, 2])
+    with q1:
+        if st.button("Load sample dataset", key="ocip_sample_btn",
+                     help="Guangzhou 2023 daily NEE + a demo activity ledger. "
+                          "Session-only — never written to the ledger."):
+            try:
+                frames = _sample_frames()
+            except Exception as exc:  # noqa: BLE001
+                st.error(f"Sample dataset unavailable: {exc}")
+            else:
+                for key_name, frame in frames.items():
+                    st.session_state[f"ocip_{key_name}"] = frame
+                st.session_state["ocip_area"] = 100.0
+                _log_event("sample_loaded")
+                st.rerun()
+        st.caption("Guangzhou 2023 flux + demo activity · session-only")
+    with q2:
+        if _consent_required():
+            st.checkbox("I may share the data I upload, and I accept the data "
+                        "notice below.", key="ocip_consent",
+                        help="Required before anything is written to the database.")
+            if not st.session_state.get("ocip_consent"):
+                st.warning("Tick the box above to enable uploads.")
+            else:
+                _log_once("consent", "consent_accepted")
+        else:
+            st.caption("No database linked — uploads live in this browser session "
+                       "only, and nothing is written.")
+        with st.expander("Data notice — what happens to what you upload"):
+            st.markdown(_DATA_NOTICE)
+
+    st.divider()
+
     # ---- upload + validation (skip # comment lines) ----
     required = {
         "activity": ["scope", "category", "activity_key", "quantity"],
@@ -210,7 +557,9 @@ with tab_upload:
     for col, (key, (skey, label)) in zip((c_a, c_f, c_s, c_i), ledgers.items()):
         with col:
             st.markdown(f"**{label}**")
-            up = st.file_uploader(f"Upload {key}", type=["csv"], key=f"up_{key}")
+            up = st.file_uploader(f"Upload {key}", type=["csv"], key=f"up_{key}",
+                                  disabled=(_consent_required()
+                                            and not st.session_state.get("ocip_consent")))
             if up:
                 try:
                     df = pd.read_csv(up, comment="#")
@@ -219,10 +568,14 @@ with tab_upload:
                     st.dataframe(df.head(3), width="stretch")
                     if miss:
                         st.error(f"Missing columns: {', '.join(miss)}")
+                        _log_event("upload_rejected", ledger=key,
+                                   missing=len(miss), rows=len(df))
                     else:
                         st.success(f"OK — {len(df)} rows, required columns present")
+                        _persist_ledger(key, df, up.name)
                 except Exception as e:  # noqa: BLE001
                     st.error(f"Could not parse CSV: {e}")
+                    _log_event("upload_rejected", ledger=key, reason="parse")
                     st.session_state.pop(skey, None)
 
     # ---- per-ledger column dictionary ----
@@ -327,11 +680,15 @@ with tab_report:
             stock_df=st.session_state.get("ocip_stock"),
             intervention_df=st.session_state.get("ocip_intervention"),
             area_ha=(area if area > 0 else None),
+            grid_region=region,
             claimed_removals_tco2e=(claim if claim > 0 else None),
             agent_col=(agent_col.strip() if agent_col.strip() else None),
         )
         st.session_state["ocip_report"] = rep
         st.session_state["ocip_report_text"] = rep.summary()
+        _persist_audit(rep, area_ha=(area if area > 0 else None), claimed=claim,
+                       agent_col=(agent_col.strip() or None),
+                       grid_region=region)
 
     rep = st.session_state.get("ocip_report")
     if rep is not None:
@@ -384,8 +741,8 @@ with tab_report:
 
         # --- scale audit: time-series εA (Eq.4) ---
         with st.expander("Scale audit — εA time series (Eq.4–5)", expanded=True):
-            sa = getattr(rep, "scale_audit", None)
-            if sa is None or sa.get("status") == "not_run":
+            sa = getattr(rep, "scale_audit", None) or {}
+            if not sa or sa.get("status") == "not_run":
                 st.caption("No usable flux ledger — scale residual reported as a "
                            "data gap, not estimated.")
             else:
@@ -468,9 +825,10 @@ with tab_report:
                 "Verification: third-party ISO 14064-3 assurance required before "
                 "disclosure.", styles["Normal"]))
             doc.build(story)
-            st.download_button("Download PDF", buf.getvalue(),
-                               file_name="ocip_audit_evidence_pack.pdf",
-                               mime="application/pdf")
+            if st.download_button("Download PDF", buf.getvalue(),
+                                  file_name="ocip_audit_evidence_pack.pdf",
+                                  mime="application/pdf"):
+                _log_event("pdf_export", report="evidence_pack")
     else:
         st.info("Upload at least the activity ledger + one removal observation "
                 "in tab 1, then press **Run the audit**.")
@@ -917,6 +1275,148 @@ with tab_bench:
         "TROPOMI CH₄ · Sentinel-2/GEDI biomass. Column-level sourcing is "
         "documented in each ledger's column dictionary."
     )
+
+# ==================================================================
+# 6. DATA & HISTORY — what the platform remembers
+# ==================================================================
+with tab_data:
+    st.header("Data & history — what the platform remembers")
+    st.caption("Every upload becomes an immutable, checksum-addressed **load**; "
+               "every audit becomes a **run** pointing at the loads it consumed. "
+               "Both are scoped by organisation and site — tenants never see "
+               "each other's ledger rows.")
+
+    data_store, data_reason = _store()
+    if data_store is None:
+        st.warning(f"No database linked — this session is memory-only ({data_reason}).")
+        st.markdown(
+            "**Link PostgreSQL** by adding the connection string to "
+            "`.streamlit/secrets.toml` (local) or the *Secrets* panel of the "
+            "deployed app:\n\n"
+            "```toml\n"
+            "[postgres]\n"
+            'url = "postgresql+psycopg://USER:PASS@HOST:5432/ocip?sslmode=require"\n'
+            "\n[ocip]\n"
+            'default_org  = "cityu"\n'
+            'default_site = "GBA-DEMO-01"\n'
+            "```\n\n"
+            "Reboot the app afterwards. The schema is created on first connect; "
+            "`python -m ucst_ccif.store --selftest --url <url>` round-trips it and "
+            "cleans up after itself.")
+
+        fb_url = _secret("ocip", "feedback_url", default=None)
+        if fb_url:
+            st.markdown(f"**Feedback:** [{fb_url}]({fb_url})")
+        else:
+            st.caption("Feedback channel not configured — set `[ocip].feedback_url` "
+                       "in secrets to collect comments without a database.")
+    else:
+        email, org = _identity()
+        site = _current_site()
+        history = data_store.audit_history(org_id=org, site_id=site)
+        load_rows = data_store.loads(org_id=org, site_id=site)
+
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Audit runs", len(history))
+        c2.metric("Ledger loads", len(load_rows))
+        c3.metric("Latest certificate",
+                  history.iloc[0]["certificate_status"] if len(history) else "—")
+        st.caption(f"`{data_store.dialect}` · org `{org}` · site `{site}` · "
+                   f"user `{email}`")
+
+        with st.expander("Audit history", expanded=True):
+            if history.empty:
+                st.info("No audit run stored for this organisation/site yet — "
+                        "run one in tab 2.")
+            else:
+                show = history.rename(columns={
+                    "run_id": "Run", "label": "Label", "created_at": "When",
+                    "created_by": "By", "certificate_status": "Certificate",
+                    "emissions_tco2e": "Emissions (tCO2e)",
+                    "removals_tco2e": "Removals (tCO2e)",
+                    "residual_ec_tco2e": "ε_C (tCO2e)",
+                    "leakage_ryg": "Leakage", "area_ha": "Area (ha)",
+                    "grid_region": "Grid"})
+                st.dataframe(show, width="stretch")
+                st.download_button(
+                    "Download history (CSV)",
+                    show.to_csv(index=False).encode("utf-8"),
+                    file_name=f"ocip_audit_history_{site}.csv",
+                    mime="text/csv")
+
+        with st.expander("Ledger provenance — which file produced which numbers"):
+            if load_rows.empty:
+                st.info("No ledger load stored yet — upload a CSV in tab 1.")
+            else:
+                show = load_rows.rename(columns={
+                    "load_id": "Load", "ledger_type": "Ledger",
+                    "file_name": "File", "sha256": "SHA-256",
+                    "row_count": "Rows", "loaded_at": "Loaded",
+                    "loaded_by": "By"})
+                st.dataframe(show, width="stretch")
+                st.caption("Re-uploading identical bytes returns the same load id, "
+                           "so an audit that cites a load always cites the same rows.")
+                st.download_button(
+                    "Download provenance (CSV)",
+                    show.to_csv(index=False).encode("utf-8"),
+                    file_name=f"ocip_ledger_loads_{site}.csv",
+                    mime="text/csv")
+
+        with st.expander("Stored report (JSON)", expanded=False):
+            if history.empty:
+                st.caption("Nothing stored yet.")
+            else:
+                labels = dict(zip(history["run_id"], history["label"]))
+                pick = st.selectbox(
+                    "Run", history["run_id"].tolist(),
+                    format_func=lambda r: f"{r[:8]} · {labels.get(r) or '—'}")
+                payload = data_store.run_report(pick)
+                st.json(payload["report"])
+                loads_used = payload["loads"] or {}
+                if loads_used:
+                    st.caption("Loads consumed: "
+                               + " · ".join(f"{k}={str(v)[:8]}"
+                                            for k, v in loads_used.items()))
+
+        with st.expander("Reference factor library (global, not org-scoped)"):
+            st.dataframe(data_store.factor_versions(), width="stretch")
+            st.caption("Seeded from `ucst_ccif/emission_factors.py` on first boot. "
+                       "Update a factor by adding a new version row — never by "
+                       "overwriting the old one.")
+
+        st.divider()
+        st.markdown('<span class="ocip-section">Feedback — what confused you first?'
+                    '</span>', unsafe_allow_html=True)
+        _log_once("fbview", "feedback_view", tab="6. Data & history")
+        with st.form("ocip_feedback", clear_on_submit=True):
+            comment = st.text_area("What was unclear, wrong, or missing?",
+                                   key="ocip_fb_comment", height=90,
+                                   placeholder="One sentence is enough — e.g. "
+                                               "'I did not know which column the "
+                                               "flux ledger expected'.")
+            rating = st.slider("How useful was this session?", 1, 5, 3,
+                               key="ocip_fb_rating")
+            contact = st.text_input("Email (optional — only if you want a reply)",
+                                    key="ocip_fb_contact")
+            sent = st.form_submit_button("Send feedback", type="primary")
+        if sent:
+            if not comment.strip():
+                st.warning("Add a sentence first — a rating alone is not actionable.")
+            else:
+                try:
+                    data_store.add_feedback(
+                        org_id=org, site_id=site, comment=comment, rating=rating,
+                        tab="6. Data & history",
+                        run_id=st.session_state.get("ocip_last_run"),
+                        contact_email=(contact.strip() or None), created_by=email)
+                except Exception as exc:  # noqa: BLE001
+                    st.error(f"Could not store feedback: {exc}")
+                else:
+                    st.success("Thank you — stored with your organisation and site.")
+
+        st.caption("Need ad-hoc SQL? Use your provider's console (Neon, Supabase) "
+                   "with a read-only role. The app exposes no free-form query box, "
+                   "so a shared link cannot read another tenant's ledger.")
 
 # ------------------------------------------------------------------
 st.markdown(f"""
