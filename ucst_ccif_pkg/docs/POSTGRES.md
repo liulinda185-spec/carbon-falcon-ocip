@@ -197,7 +197,8 @@ removes every row it created:
 python -m ucst_ccif.store --selftest --url "postgresql+psycopg://ocip_app:PASS@HOST:5432/ocip?sslmode=require"
 ```
 
-Expected: `connected: postgresql — PostgreSQL 16.x ...`, then
+Expected: `connected: postgresql — PostgreSQL 16.x` (17.x on a newer Neon project
+— both fine), then
 `idempotency: ok`, `round-trip: ok`, `audit round-trip: ok`,
 `feedback round-trip: ok`, `event round-trip: ok`, `cleanup: ok`.
 It also seeds the factor library (global rows, intentionally left behind).

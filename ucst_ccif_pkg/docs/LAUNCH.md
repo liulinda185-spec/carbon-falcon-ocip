@@ -35,7 +35,8 @@ and so their clicks can never land in the database you intend to analyse.
    python -m ucst_ccif.store --selftest --url "postgresql+psycopg://..."
    ```
 
-   Expect `connected: postgresql — PostgreSQL 16.x`, then `idempotency: ok`,
+   Expect `connected: postgresql — PostgreSQL 16.x` (17.x on a newer Neon project;
+   either is fine), then `idempotency: ok`,
    `round-trip: ok`, `audit round-trip: ok`, `feedback round-trip: ok`,
    `cleanup: ok`. Only the 28 factor rows stay behind, on purpose.
 
