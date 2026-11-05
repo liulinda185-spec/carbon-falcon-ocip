@@ -124,6 +124,37 @@ def test_demo_mode_ignores_a_configured_database(monkeypatch, tmp_path):
     assert not db.exists(), "demo mode opened the database"
 
 
+def test_public_trial_counts_steps_but_stores_no_files(monkeypatch, tmp_path):
+    """Share-one-link mode: events land, ledgers never do, nobody is identified."""
+    db = tmp_path / "public.db"
+    monkeypatch.setenv("OCIP_DATABASE_URL", f"sqlite:///{db}")
+    monkeypatch.setenv("OCIP_TELEMETRY_ONLY", "1")
+
+    at = _run()
+    assert not at.exception, [str(e.value) for e in at.exception]
+    infos = " ".join(i.value for i in at.info).lower()
+    assert "public trial" in infos
+
+    run_buttons = [b for b in at.button if b.label == "Run the audit"]
+    assert run_buttons, "audit button not found"
+    run_buttons[0].click()
+    at.run()
+    assert not at.exception, [str(e.value) for e in at.exception]
+    assert any(m.label.startswith("Verified") for m in at.metric)
+
+    from ucst_ccif.store import Store
+
+    store = Store(f"sqlite:///{db}")
+    counts = store.counts(org_id="public")
+    assert counts["event"] >= 2, "steps were not recorded"
+    assert counts["ledger_load"] == 0, "a public trial stored a ledger"
+    assert counts["audit_run"] == 0, "a public trial stored an audit"
+    ev = store.events(org_id="public")
+    assert set(ev["created_by"].dropna()) == set(), "an email was recorded"
+    assert store.feedback(org_id="public").empty
+    store.dispose()
+
+
 def test_feedback_is_stored(monkeypatch, tmp_path):
     db = tmp_path / "fb.db"
     monkeypatch.setenv("OCIP_DATABASE_URL", f"sqlite:///{db}")

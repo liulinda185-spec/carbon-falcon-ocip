@@ -107,7 +107,7 @@ st.markdown(f"""
   <div class="tagline">{APP_TAGLINE}</div>
   <div class="badges">
     <span class="ocip-badge">{APP_VERSION}</span>
-    <span class="ocip-badge">112/112 tests</span>
+    <span class="ocip-badge">113/113 tests</span>
     <span class="ocip-badge gold">Apache-2.0</span>
     <span class="ocip-badge grey">UCST-CCIF engine</span>
     <span class="ocip-badge">10/10 equations mapped</span>
@@ -152,12 +152,27 @@ def _demo_mode() -> bool:
     env = os.environ.get("OCIP_DEMO_MODE", "").strip().lower()
     if env in {"1", "true", "yes", "on"}:
         return True
+    if _telemetry_only():      # the public trial is a sandbox with counting on
+        return True
     return bool(_secret("ocip", "demo", default=False))
+
+
+def _telemetry_only() -> bool:
+    """Public trial: events yes, client files never.
+
+    `telemetry_only = true` under [ocip] (or OCIP_TELEMETRY_ONLY=1) makes the
+    app read sample data, keep every visitor's uploads in the browser session,
+    and write *only* the step events — no ledger rows, no reports, no emails.
+    """
+    env = os.environ.get("OCIP_TELEMETRY_ONLY", "").strip().lower()
+    if env in {"1", "true", "yes", "on"}:
+        return True
+    return bool(_secret("ocip", "telemetry_only", default=False))
 
 
 def _store():
     """(Store | None, reason). Never raises."""
-    if _demo_mode():
+    if _demo_mode() and not _telemetry_only():
         return None, "demo sandbox — sample data only, nothing is stored"
     url = (_secret("postgres", "url", default=None)
            or os.environ.get("OCIP_DATABASE_URL"))
@@ -170,7 +185,13 @@ def _store():
 
 
 def _identity():
-    """(email, org_id). st.login when configured, otherwise a dev identity."""
+    """(email, org_id). st.login when configured, otherwise a dev identity.
+
+    In telemetry-only mode the visitor is deliberately anonymous: no address
+    is recorded even if one happens to be available.
+    """
+    if _telemetry_only():
+        return None, "public"
     email = None
     try:
         if st.user.is_logged_in:
@@ -225,9 +246,17 @@ def _log_once(key, verb, **detail):
 
 
 def _persist_ledger(ledger, df, file_name):
-    """Store one uploaded ledger. Silent no-op when no database is linked."""
+    """Store one uploaded ledger. Silent no-op when no database is linked.
+
+    In demo / public-trial mode this never writes: a visitor's file stays in
+    their own session, so the sample data cannot be polluted by strangers.
+    """
     store, _ = _store()
     if store is None:
+        return
+    if _demo_mode():
+        # public trial: count the step, keep the file in the visitor's session
+        _log_event("upload_ok", ledger=ledger, rows=len(df), stored=False)
         return
     email, org = _identity()
     try:
@@ -247,6 +276,11 @@ def _persist_ledger(ledger, df, file_name):
 def _persist_audit(report, *, area_ha, claimed, agent_col, grid_region):
     store, _ = _store()
     if store is None:
+        return
+    if _demo_mode():
+        _log_event("audit_run",
+                   certificate=getattr(report, "certificate_status", None),
+                   area_ha=area_ha, grid_region=grid_region, stored=False)
         return
     email, org = _identity()
     try:
@@ -319,10 +353,34 @@ _DATA_NOTICE = (
 )
 
 
+_PUBLIC_NOTICE = (
+    "**This is a public trial.** Your uploaded files stay in your browser "
+    "session: they are never stored, never shown to anyone else, and disappear "
+    "when you close the tab.\n\n"
+    "- **What we record:** which step you reached — opened the app, loaded the "
+    "sample, uploaded, ran the audit, exported the PDF, opened the feedback box "
+    "— with a timestamp and a random session label.\n"
+    "- **What we never record:** your email, your IP address, your browser "
+    "fingerprint, the contents of any file you upload, or any text you type.\n"
+    "- **Why:** to find where a first-time visitor gets stuck. Nothing here "
+    "identifies you.\n"
+    "- **Please don't upload** real company data — use the sample dataset, or "
+    "dummy numbers."
+)
+
+
+def _data_notice() -> str:
+    """The notice that matches the deployment's actual behaviour."""
+    return _PUBLIC_NOTICE if _telemetry_only() else _DATA_NOTICE
+
+
 def _consent_required() -> bool:
-    """Consent matters only when something is actually written to a database."""
+    """Consent matters only when a visitor's own file is actually stored.
+
+    The public trial writes events but never ledgers, so it does not ask.
+    """
     store, _ = _store()
-    return store is not None
+    return store is not None and not _demo_mode()
 
 
 def _sample_frames() -> dict[str, pd.DataFrame]:
@@ -404,7 +462,11 @@ with st.sidebar:
     st.divider()
 
     _store_obj, _store_reason = _store()
-    if _store_obj is not None:
+    if _store_obj is not None and _telemetry_only():
+        st.info("**Store:** public trial — step counts only, uploaded files are "
+                "never saved")
+        st.caption("anonymous · org `public` · no email stored")
+    elif _store_obj is not None:
         engine = ("PostgreSQL" if _store_obj.dialect == "postgresql"
                   else f"{_store_obj.dialect} (local dev)")
         st.success(f"**Store:** {engine} — persisted")
@@ -419,7 +481,7 @@ with st.sidebar:
         "ocip_site", _secret("ocip", "default_site", default="GBA-DEMO-01"))
     st.text_input("Site ID", key="ocip_site",
                   help="Every ledger load and audit run is filed under this site.")
-    st.caption(f"User `{_identity()[0]}`")
+    st.caption(f"User `{_identity()[0] or 'anonymous'}`")
     if _auth_enabled() and _signed_in():
         if not _invite_list_active():
             st.caption("Note: no `[ocip.orgs]` list — any signed-in account lands "
@@ -535,7 +597,7 @@ with tab_upload:
             st.caption("No database linked — uploads live in this browser session "
                        "only, and nothing is written.")
         with st.expander("Data notice — what happens to what you upload"):
-            st.markdown(_DATA_NOTICE)
+            st.markdown(_data_notice())
 
     st.divider()
 

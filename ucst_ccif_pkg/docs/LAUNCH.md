@@ -93,6 +93,27 @@ erroring.
    server_metadata_url = "https://accounts.google.com/.well-known/openid-configuration"
    ```
 
+   **Public trial app — one link for everyone, funnel counted, files never
+   stored.** This is the configuration for "share it widely and still see where
+   people stop". No `[auth]`, no `[ocip.orgs]`, and a *separate* database so a
+   public app can never touch pilot data:
+
+   ```toml
+   [postgres]
+   url = "postgresql+psycopg://ocip_public:PASS@ep-yyy.ap-southeast-1.aws.neon.tech/ocip_public?sslmode=require"
+
+   [ocip]
+   telemetry_only = true
+   default_site   = "PUBLIC-WEB"
+   feedback_url   = "https://forms.gle/…"
+   ```
+
+   Behaviour in that mode: the sample dataset is preloaded, uploaded files stay
+   in the visitor's browser (never written, never shown to anyone else), no
+   email / IP / user agent is recorded, and only the eight step events land in
+   `event` under org `public`. Consent is not asked because nothing of theirs is
+   stored; the notice shown in tab 1 changes to match (`_data_notice()`).
+
 6. Deploy. First boot creates the schema and seeds the 28 factor rows.
 
 Free-tier apps sleep when idle; the first visitor after a quiet spell waits
