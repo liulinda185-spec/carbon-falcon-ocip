@@ -20,8 +20,17 @@ def _run(**kwargs) -> AppTest:
     return at
 
 
-def test_app_boots_without_a_database(monkeypatch):
+def _isolate_secrets(monkeypatch, tmp_path) -> None:
+    """Run the app in a clean cwd so the developer's real `.streamlit/secrets.toml`
+    (which points at production) never leaks into a test."""
+    monkeypatch.chdir(tmp_path)
+
+
+def test_app_boots_without_a_database(monkeypatch, tmp_path):
     monkeypatch.delenv("OCIP_DATABASE_URL", raising=False)
+    monkeypatch.delenv("OCIP_TELEMETRY_ONLY", raising=False)
+    monkeypatch.delenv("OCIP_DEMO_MODE", raising=False)
+    _isolate_secrets(monkeypatch, tmp_path)
     at = _run()
     assert not at.exception, [str(e.value) for e in at.exception]
     # the degraded path must say so rather than pretend persistence works
@@ -30,6 +39,7 @@ def test_app_boots_without_a_database(monkeypatch):
 
 
 def test_app_boots_and_stores_with_sqlite(monkeypatch, tmp_path):
+    _isolate_secrets(monkeypatch, tmp_path)
     db = tmp_path / "app.db"
     monkeypatch.setenv("OCIP_DATABASE_URL", f"sqlite:///{db}")
     at = _run()
@@ -56,6 +66,7 @@ ACTIVITY_CSV = (
 
 def test_upload_then_audit_is_persisted(monkeypatch, tmp_path):
     """End to end through the real widgets: upload → run → rows in the store."""
+    _isolate_secrets(monkeypatch, tmp_path)
     db = tmp_path / "e2e.db"
     monkeypatch.setenv("OCIP_DATABASE_URL", f"sqlite:///{db}")
 
@@ -105,6 +116,7 @@ def test_upload_then_audit_is_persisted(monkeypatch, tmp_path):
 
 def test_demo_mode_ignores_a_configured_database(monkeypatch, tmp_path):
     """The public sandbox must be unable to write, even with a URL present."""
+    _isolate_secrets(monkeypatch, tmp_path)
     db = tmp_path / "demo.db"
     monkeypatch.setenv("OCIP_DATABASE_URL", f"sqlite:///{db}")
     monkeypatch.setenv("OCIP_DEMO_MODE", "1")
@@ -126,6 +138,7 @@ def test_demo_mode_ignores_a_configured_database(monkeypatch, tmp_path):
 
 def test_public_trial_counts_steps_but_stores_no_files(monkeypatch, tmp_path):
     """Share-one-link mode: events land, ledgers never do, nobody is identified."""
+    _isolate_secrets(monkeypatch, tmp_path)
     db = tmp_path / "public.db"
     monkeypatch.setenv("OCIP_DATABASE_URL", f"sqlite:///{db}")
     monkeypatch.setenv("OCIP_TELEMETRY_ONLY", "1")
@@ -141,8 +154,13 @@ def test_public_trial_counts_steps_but_stores_no_files(monkeypatch, tmp_path):
     at.run()
     assert not at.exception, [str(e.value) for e in at.exception]
     assert any(m.label.startswith("Verified") for m in at.metric)
+    # a first-timer must see a passing certificate on the sample, not a warning
+    cert = " ".join(m.value for m in at.markdown)
+    assert "PASS" in cert, f"sample run should earn a PASS, got: {cert[:400]}"
 
     from ucst_ccif.store import Store
+
+    store = Store(f"sqlite:///{db}")
 
     store = Store(f"sqlite:///{db}")
     counts = store.counts(org_id="public")
@@ -156,6 +174,7 @@ def test_public_trial_counts_steps_but_stores_no_files(monkeypatch, tmp_path):
 
 
 def test_feedback_is_stored(monkeypatch, tmp_path):
+    _isolate_secrets(monkeypatch, tmp_path)
     db = tmp_path / "fb.db"
     monkeypatch.setenv("OCIP_DATABASE_URL", f"sqlite:///{db}")
 

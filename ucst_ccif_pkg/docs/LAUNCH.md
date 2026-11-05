@@ -314,6 +314,23 @@ In the deployed apps:
 - settings page of the Cloud app → Secrets show the values you expect (never
   paste a connection string into the repo itself).
 
+### What FAIL and REVIEW look like (teach these on purpose)
+
+The shipped sample runs green — a first-timer sees
+`PASS — ledger consistent within tolerance`. The red verdicts are not bugs; they
+are the product's main claim. Reproduce them on demand in the sample run:
+
+- **FAIL — over-claim detected (claim > observation)**: set
+  `Company's claimed removal` to `420` while the independent stock observation
+  is `380` → e_C = −40 tCO2e. The tool refuses the certificate because the
+  claim exceeds what the ledger supports. Use this as the screenshot in the
+  launch post: *the tool says no to a number a spreadsheet would have stamped.*
+- **REVIEW — target leakage in flux model**: upload the raw flux CSV with
+  `GPP_daily_total` and `ER_daily_total` columns as predictors of `NEE`
+  (NEE = ER − GPP by construction). The leakage audit flags them as
+  tautological. The demo strips those two columns precisely so the demo does
+  not look like a false alarm; upload the raw file to show the check firing.
+
 ---
 
 ## 7 · Sharing it, in four stages

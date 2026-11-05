@@ -384,7 +384,14 @@ def _consent_required() -> bool:
 
 
 def _sample_frames() -> dict[str, pd.DataFrame]:
-    """Guangzhou 2023 daily NEE + demo activity/stock — for a first run."""
+    """Guangzhou 2023 daily NEE + demo activity/stock — for a first run.
+
+    The raw flux CSV ships GPP/ER alongside NEE, but those two columns are
+    internal components of NEE (NEE = ER − GPP), so the leakage audit flags
+    them as tautological predictors. The demo keeps only exogenous drivers,
+    which is exactly the regime that earns a PASS; see docs/LAUNCH.md for
+    the FAIL/REVIEW recipes that use the raw columns on purpose.
+    """
     act = pd.DataFrame([
         {"scope": "2", "category": "electricity",
          "activity_key": "guangdong", "quantity": 1135589.4},
@@ -396,6 +403,10 @@ def _sample_frames() -> dict[str, pd.DataFrame]:
     if not flux_path.exists():
         raise FileNotFoundError(f"sample dataset missing: {flux_path}")
     flux = pd.read_csv(flux_path, comment="#")
+    leaky = [c for c in flux.columns
+             if c.lower().startswith(("gpp", "er")) and c != "NEE_daily_total"]
+    if leaky:
+        flux = flux.drop(columns=leaky)
     return {"activity": act, "flux": flux, "stock": stock}
 
 
@@ -723,7 +734,7 @@ with tab_report:
     a1, a2, a3 = st.columns(3)
     with a1:
         claim = st.number_input("Company's claimed removal (tCO₂e/yr)",
-                                0.0, 1e9, 420.0, step=10.0,
+                                0.0, 1e9, 380.0, step=10.0,
                                 help="Company-claimed removals — S3 reconciles it against independent observation")
     with a2:
         agent_col = st.text_input("Agent-state column (Eq.2, optional)",
