@@ -2,6 +2,16 @@
 
 **Conservation-Constrained Carbon Flux Integrated Framework** — auditable, cross-scale carbon accounting from enterprise Scope 1 to coastal blue carbon.
 
+## Try it now — no install, no sign-in
+
+**[▶ Open the public trial →](https://carbon-falcon-8dubwckd7mfseynb7azamc.streamlit.app/)**
+
+A carbon-verification layer for GBA enterprises. Sample data is preloaded — you
+reach an audited certificate in about three minutes. The certificate is *earned*:
+if a removal claim exceeds what the independent flux record supports, the verdict
+is **FAIL — over-claim detected**, not a softer note. No sign-in, no data leaves
+your browser; only anonymous step counts are collected.
+
 ## What it does
 
 - **Continuum model** (`ucst_ccif.compartments`): 12-pool daily land–river–coastal carbon model with Q10 temperature response, moisture constraints, and a mass-balance residual ε_C that flags bookkeeping gaps.
@@ -156,18 +166,16 @@ Negative ε_C always means the books claim more than the independent record supp
 
 ## Deploy it publicly (free)
 
-Anyone with a link can use the app — no install needed on their side.
+The live public trial above already runs on Streamlit Community Cloud. To redeploy
+or build your own:
 
 1. **Streamlit Community Cloud** (easiest, free):
    - Go to <https://share.streamlit.io> → **Sign in with GitHub**
-   - **Deploy an app** → pick `liulinda185-spec/Carbon-Falcon`
-   - Main file: `app/streamlit_app.py` → **Deploy**
-   - Result: a public URL like `https://carbon-falcon.streamlit.app`
-2. **Hugging Face Spaces** (alternative, free):
-   - Create a Space → SDK **Streamlit** → import the GitHub repo
-   - Main file `app/streamlit_app.py`; ensure `requirements.txt` lists
-     `streamlit`, `pandas`, `numpy`, `scipy`, `reportlab`.
-3. **Your own server** (most control): install `.[app]`, then
+   - **Deploy an app** → pick `liulinda185-spec/carbon-falcon-ocip`
+   - Main file: `ucst_ccif_pkg/app/streamlit_app.py` → **Deploy**
+   - Paste the Secrets TOML (see [`docs/LAUNCH.md`](docs/LAUNCH.md)) — a public
+     trial uses `[ocip].telemetry_only = true` and stores nothing of the visitor's.
+2. **Your own server** (most control): install `.[app]`, then
    `streamlit run app/streamlit_app.py --server.port 80`.
 
 ## Tests
@@ -176,7 +184,8 @@ Anyone with a link can use the app — no install needed on their side.
 pytest tests/ -v
 ```
 
-75 tests pass (v0.3.0), including the attribution, audit-pipeline, leakage-refit and M2a/M3 suites.
+118 tests pass, including the attribution, audit-pipeline, leakage-refit,
+event-tracker, tenant isolation, and sample-verdict suites.
 
 ## Zenodo DOI
 

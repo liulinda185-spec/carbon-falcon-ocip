@@ -2,7 +2,15 @@
 
 **Conservation-Constrained Carbon Flux Integrated Framework** — auditable, cross-scale carbon accounting from enterprise Scope 1 to coastal blue carbon.
 
-Live demo (Streamlit Community Cloud): https://carbon-falcon-ocip.streamlit.app — open-source, Apache-2.0.
+## Try it now — no install, no sign-in
+
+**[▶ Open the public trial →](https://carbon-falcon-8dubwckd7mfseynb7azamc.streamlit.app/)**
+
+A carbon-verification layer for GBA enterprises. Sample ledgers are preloaded —
+you reach an audited certificate in about three minutes. The certificate is
+*earned*: if a removal claim exceeds what the independent flux record supports,
+the verdict is **FAIL — over-claim detected**, not a softer note. No sign-in,
+uploaded files are never stored; only anonymous step counts are collected.
 
 ## What it does
 
@@ -72,7 +80,8 @@ Four ledgers in → a 7-step falsification pipeline → eight audited outputs pl
 pytest tests/ -v
 ```
 
-85 tests pass (v0.4.0), including attribution, audit-pipeline (scale audit), leakage-refit and M0–M3 competition suites.
+118 tests pass, including attribution, audit-pipeline (scale audit), leakage-refit,
+event-tracker, tenant-isolation and M0–M3 competition suites.
 
 ## Paper
 
